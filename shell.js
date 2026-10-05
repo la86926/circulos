@@ -43,7 +43,7 @@ const SECTIONS=[
   {href:'index.html',title:'Círculos',subtitle:'Tonalidades, sus 7 acordes y posiciones.'},
   {href:'acordes.html',title:'Acordes',subtitle:'Biblioteca de acordes de guitarra y piano.'}
 ];
-const MENU_ORDER=['index.html','acordes.html','favMenuItem','installItem','tuto'];
+const MENU_ORDER=['index.html','acordes.html','convMenuItem','favMenuItem','installItem','tuto'];
 const here=(location.pathname.split('/').pop()||'index.html');
 function menuKey(el){return el.classList.contains('tuto-menu-item')?'tuto':(el.id||el.getAttribute('href')||'');}
 function sortMenu(){

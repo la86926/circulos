@@ -51,7 +51,13 @@ function play(midis,{roll=0,velocity=.8}={}){
     list.forEach((m,i)=>voice(m,t+i*roll,velocity*(list.length>1?.82:1)));
   });
 }
-window.CirculosPiano={play,unlock};
+/* Corta en seco todo lo que esté sonando (al detener o al salir de la pantalla) */
+function stopAll(){
+  if(!ctx)return;const t=ctx.currentTime;
+  voices.forEach(v=>{try{v.gain.gain.cancelScheduledValues(t);v.gain.gain.setTargetAtTime(0,t,.015);v.src.stop(t+.12);}catch(e){}});
+  voices.clear();
+}
+window.CirculosPiano={play,unlock,stopAll};
 
 /* Teclas: suenan al tocarlas y al deslizar el dedo encima (barrido o glissando).
    En pantallas táctiles, si el gesto es vertical se deja desplazar la página y no suena nada. */

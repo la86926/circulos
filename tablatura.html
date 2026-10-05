@@ -7,13 +7,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="description" content="Biblioteca visual de acordes de guitarra.">
+<meta name="description" content="Convierte una partitura en PDF en tablatura de guitarra.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Acordes · Círculos Music">
 <meta property="og:description" content="Biblioteca visual de más de 900 acordes de guitarra con todas sus posiciones.">
 <meta property="og:image" content="https://la86926.github.io/Circulos-music/og-image.png?v=4">
 <meta name="twitter:card" content="summary_large_image">
-<title>Acordes · Círculos Music</title>
+<title>Tablatura · Círculos Music</title>
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="logo.svg?v=3" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
@@ -21,6 +22,7 @@
 <link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="shell.css?v=3">
 <link rel="stylesheet" href="chords-library.css?v=15">
+<link rel="stylesheet" href="tablatura.css?v=3">
 <link rel="stylesheet" href="polish.css?v=18">
 <link rel="stylesheet" href="tutorial.css?v=4">
 </head>
@@ -44,45 +46,61 @@
   </div>
   <nav class="app-picker" aria-label="Herramientas">
     <a class="app-choice" href="index.html"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke-opacity=".35"/><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="4" r="1.7"/><circle cx="18.9" cy="8" r="1.7"/><circle cx="18.9" cy="16" r="1.7"/><circle cx="12" cy="20" r="1.7"/><circle cx="5.1" cy="16" r="1.7"/><circle cx="5.1" cy="8" r="1.7"/></svg></span><strong>Círculos</strong><small>Tonalidades, sus 7 acordes y posiciones.</small></a>
-    <a class="app-choice active" href="acordes.html" aria-current="page"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M10.67 4v16M15.33 4v16M20 4v16" stroke-opacity=".5"/><path d="M6 4h14" stroke-width="2.4"/><path d="M6 9h14M6 14h14M6 19h14" stroke-opacity=".3"/><circle class="dot" cx="10.67" cy="11.5" r="2"/><circle class="dot" cx="15.33" cy="16.5" r="2"/><circle class="dot" cx="20" cy="6.5" r="2"/></svg></span><strong>Acordes</strong><small>Biblioteca de acordes de guitarra y piano.</small></a>
+    <a class="app-choice" href="acordes.html"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M10.67 4v16M15.33 4v16M20 4v16" stroke-opacity=".5"/><path d="M6 4h14" stroke-width="2.4"/><path d="M6 9h14M6 14h14M6 19h14" stroke-opacity=".3"/><circle class="dot" cx="10.67" cy="11.5" r="2"/><circle class="dot" cx="15.33" cy="16.5" r="2"/><circle class="dot" cx="20" cy="6.5" r="2"/></svg></span><strong>Acordes</strong><small>Biblioteca de acordes de guitarra y piano.</small></a>
   </nav>
   <gift-card-widget></gift-card-widget>
 </aside>
-<main class="container app-view" id="chordsView">
-  <section class="hero library-hero">
+<main class="container app-view" id="tabView">
+  <section class="hero tab-hero">
     <div>
-      <h1>Biblioteca de acordes</h1>
+      <h1>Partitura a tablatura</h1>
+      <p class="hero-copy">Sube una partitura en PDF y la melodía se pasa a tablatura de guitarra. Todo se hace en tu dispositivo: el archivo no se sube a internet.</p>
     </div>
   </section>
-  <section class="panel chordlib-tools" aria-label="Herramientas de la biblioteca">
-    <div class="chordlib-tools-main">
-      <label class="chord-search" for="chordSearch">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input id="chordSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Busca Cmaj7, DO menor 7, F#m7…">
-      </label>
-      <div class="chord-notation"><span class="label">Nomenclatura</span><div class="segmented seg2"><button class="seg-btn active" data-library-notation="english" type="button">Inglés</button><button class="seg-btn" data-library-notation="latin" type="button">Latina</button></div></div>
-    </div>
-    <div class="chordlib-filter-row">
-      <div class="chord-filter-block"><span class="chord-filter-label">Nota</span><div class="chord-root-scroller" id="chordRootFilters" aria-label="Filtrar por nota"></div></div>
-      <label class="chord-filter-block"><span class="chord-filter-label">Familia</span><select class="chord-select" id="chordFamilyFilter"><option value="all">Todas las familias</option></select></label>
-    </div>
+
+  <section class="panel tab-load" id="tabLoad">
+    <label class="tab-drop" id="tabDrop">
+      <input type="file" id="tabFile" accept="application/pdf,.pdf" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg>
+      <strong id="tabDropTitle">Elegir partitura en PDF</strong>
+      <small id="tabDropSub">Funciona con PDF hechos en programas de partituras (Sibelius, Finale, MuseScore). Las fotos o escaneos no se pueden leer.</small>
+    </label>
+    <div class="tab-progress" id="tabProgress" hidden><div class="tab-progress-bar"><i id="tabProgressBar"></i></div><p id="tabProgressText">Leyendo…</p></div>
+    <p class="tab-error" id="tabError" role="alert"></p>
   </section>
-  <section class="chordlib-results" aria-labelledby="chordCatalogTitle">
-    <div class="chord-results-head"><div class="results-title"><h2 id="chordCatalogTitle">Acordes</h2><div class="segmented seg2 lib-inst" role="group" aria-label="Instrumento"><button class="seg-btn active" type="button" data-library-inst="guitar" aria-pressed="true">Guitarra</button><button class="seg-btn" type="button" data-library-inst="piano" aria-pressed="false">Piano</button></div></div><button class="chord-reset" id="chordResetFilters" type="button">Limpiar filtros</button></div>
-    <div class="chord-catalog-grid" id="chordCatalogGrid" aria-live="polite"></div>
-    <div class="chord-empty" id="chordEmpty" hidden><strong>Sin coincidencias</strong><span>Prueba otra nota, familia o búsqueda.</span></div>
-    <button class="chord-load-more" id="chordLoadMore" type="button" hidden>Mostrar más</button>
+
+  <section class="panel tab-list-panel" id="tabListPanel" hidden>
+    <div class="panel-head"><div><h3 class="panel-title" id="tabListTitle">Canciones</h3><p class="panel-subtitle" id="tabListSub"></p></div><button class="tab-link" id="tabOther" type="button">Otro PDF</button></div>
+    <label class="chord-search tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="tabSearch" type="search" autocomplete="off" placeholder="Busca por número o nombre"></label>
+    <div class="tab-list" id="tabList"></div>
+  </section>
+
+  <section class="panel tab-song" id="tabSong" hidden>
+    <div class="tab-song-head">
+      <button class="icon-btn tab-back" id="tabBack" type="button" aria-label="Volver a la lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div><p class="eyebrow" id="tabSongNum"></p><h2 id="tabSongTitle"></h2><p class="panel-subtitle" id="tabSongInfo"></p></div>
+    </div>
+    <div class="tab-controls">
+      <button class="tab-play" id="tabPlay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z"/></svg><span>Escuchar</span></button>
+      <label class="tab-tempo"><span>Velocidad</span><input type="range" id="tabTempo" min="40" max="140" step="5" value="100"><b id="tabTempoVal">100</b></label>
+      <label class="tab-select"><span>Posición</span><select id="tabMode"><option value="mid">Mitad del mástil</option><option value="low">Cerca de la cejuela</option><option value="open">Con cuerdas al aire</option></select></label>
+      <label class="tab-select"><span>Letra</span><select id="tabVerse"></select></label>
+      <label class="tab-check"><input type="checkbox" id="tabChords" checked><span>Acordes</span></label>
+      <button class="tab-link" id="tabPrint" type="button">Imprimir</button>
+    </div>
+    <p class="tab-mode-hint" id="tabModeHint"></p>
+    <p class="tab-legend">Cada línea es una cuerda: arriba la 1.ª (la más delgada) y abajo la 6.ª. El número es el traste. Debajo, el ritmo: <b>|</b> negra, <b>╷</b> blanca, unidas con barra = corcheas. <b>Toca cualquier nota para escuchar desde ahí.</b></p>
+    <div class="tab-sheet" id="tabSheet"></div>
   </section>
 </main>
 <div class="toast" id="toast" role="status"></div>
 <script src="shell.js?v=4"></script>
 <script src="convertidor.js?v=1" defer></script>
+<script src="vendor/pdfjs/pdf.min.js"></script>
+<script src="partitura-extract.js?v=1" defer></script>
+<script src="partitura-analyze.js?v=1" defer></script>
 <script src="piano-sound.js?v=5" defer></script>
-<script src="chords-library.js?v=25" defer></script>
+<script src="tablatura.js?v=4" defer></script>
 <script src="gift-ui.js?v=7" defer></script>
-<script src="share.js?v=2" defer></script>
-<script src="favoritos.js?v=10" type="module"></script>
-<script src="tutorial.js?v=20" defer></script>
-<script src="leave-guard.js?v=4" defer></script>
 </body>
 </html>
