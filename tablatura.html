@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="shell.css?v=3">
 <link rel="stylesheet" href="chords-library.css?v=15">
-<link rel="stylesheet" href="tablatura.css?v=3">
+<link rel="stylesheet" href="tablatura.css?v=4">
 <link rel="stylesheet" href="polish.css?v=18">
 <link rel="stylesheet" href="tutorial.css?v=4">
 </head>
@@ -54,7 +54,7 @@
   <section class="hero tab-hero">
     <div>
       <h1>Partitura a tablatura</h1>
-      <p class="hero-copy">Sube una partitura en PDF y la melodía se pasa a tablatura de guitarra. Todo se hace en tu dispositivo: el archivo no se sube a internet.</p>
+      <p class="hero-copy">Sube una partitura en PDF y la melodía se pasa a tablatura de guitarra o ukelele, o a notas para piano. Todo se hace en tu dispositivo: el archivo no se sube a internet.</p>
     </div>
   </section>
 
@@ -83,9 +83,11 @@
     <div class="tab-controls">
       <button class="tab-play" id="tabPlay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z"/></svg><span>Escuchar</span></button>
       <label class="tab-tempo"><span>Velocidad</span><input type="range" id="tabTempo" min="40" max="140" step="5" value="100"><b id="tabTempoVal">100</b></label>
-      <label class="tab-select"><span>Posición</span><select id="tabMode"><option value="mid">Mitad del mástil</option><option value="low">Cerca de la cejuela</option><option value="open">Con cuerdas al aire</option></select></label>
+      <label class="tab-select"><span>Instrumento</span><select id="tabInst"><option value="guitar">Guitarra</option><option value="uke">Ukelele (GCEA)</option><option value="piano">Piano</option></select></label>
+      <label class="tab-select" id="tabModeWrap"><span>Posición</span><select id="tabMode"><option value="mid">Mitad del mástil</option><option value="low">Cerca de la cejuela</option><option value="open">Con cuerdas al aire</option></select></label>
       <label class="tab-select"><span>Letra</span><select id="tabVerse"></select></label>
       <label class="tab-check"><input type="checkbox" id="tabChords" checked><span>Acordes</span></label>
+      <label class="tab-check" id="tabKbWrap" hidden><input type="checkbox" id="tabKb" checked><span>Teclado</span></label>
       <button class="tab-link" id="tabPrint" type="button">Imprimir</button>
     </div>
     <div class="tab-sheet" id="tabSheet"></div>
@@ -98,7 +100,7 @@
 <script src="partitura-extract.js?v=1" defer></script>
 <script src="partitura-analyze.js?v=1" defer></script>
 <script src="piano-sound.js?v=5" defer></script>
-<script src="tablatura.js?v=5" defer></script>
+<script src="tablatura.js?v=6" defer></script>
 <script src="gift-ui.js?v=7" defer></script>
 </body>
 </html>

@@ -60,9 +60,41 @@ html[data-theme=dark] .tl-chord{fill:#9dc4f5}
 .tl-hit{fill:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .tl-hit:hover{fill:rgba(91,143,219,.08)}
 .tl-tie{fill:none;stroke:var(--muted);stroke-width:1.2}
+.tab-controls [hidden]{display:none!important}
+/* Piano: nombres de nota con puntos de octava */
+.tl-name{fill:var(--text);font-size:14px;font-weight:800;text-anchor:middle;paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round}
+.tl-oct{fill:var(--text)}
+.tl-note.is-tied .tl-name{fill:var(--muted);font-size:12px}
+.tl-note.is-tied .tl-oct{fill:var(--muted)}
+.tl-note.is-now .tl-name,.tl-note.is-now .tl-oct{fill:#2f64a8}
+html[data-theme=dark] .tl-note.is-now .tl-name,html[data-theme=dark] .tl-note.is-now .tl-oct{fill:#9dc4f5}
+/* Teclado flotante */
+.kb-float{position:fixed;z-index:50;padding:14px 10px 10px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:0 18px 50px rgba(15,30,60,.2);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.kb-float[hidden]{display:none}
+.kb-float:active{cursor:grabbing}
+.kb-grip{position:absolute;top:5px;left:50%;width:34px;height:4px;margin-left:-17px;border-radius:9px;background:var(--line)}
+.kb-close{position:absolute;top:-9px;right:-9px;width:26px;height:26px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted);cursor:pointer;opacity:.8;box-shadow:0 4px 12px rgba(15,30,60,.12);transition:opacity .2s,transform .2s}
+.kb-close:hover{opacity:1;transform:scale(1.08)}
+.kb-close svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+.kb-svg{display:block;width:100%;height:auto;overflow:visible}
+.kb-key rect{transition:fill .08s}
+.kb-w rect{fill:#fff;stroke:#c3cede;stroke-width:.35}
+.kb-w text{fill:#5d6c82;font-size:3.4px;font-weight:800;text-anchor:middle}
+.kb-w .kb-oct{fill:#5d6c82}
+.kb-b rect{fill:#1c2431}
+.kb-b text{fill:#fff;font-size:2.5px;font-weight:800;text-anchor:middle;opacity:0}
+.kb-b .kb-oct{fill:#fff;opacity:0}
+.kb-key.is-on rect{fill:#5b8fdb}
+.kb-b.is-on rect{fill:#3a6fc0}
+.kb-key.is-on text,.kb-key.is-on .kb-oct{fill:#fff;opacity:1}
+html[data-theme=dark] .kb-w rect{fill:#e9eef6;stroke:#8d9ab0}
+html[data-theme=dark] .kb-b rect{fill:#0c1018}
+html[data-theme=dark] .kb-key.is-on rect{fill:#5b8fdb}
+.kb-resize{position:absolute;right:4px;bottom:4px;width:12px;height:12px;cursor:nwse-resize;opacity:.55;background:linear-gradient(135deg,transparent 45%,var(--muted) 45%,var(--muted) 55%,transparent 55%,transparent 70%,var(--muted) 70%,var(--muted) 80%,transparent 80%)}
+@media(pointer:coarse){.kb-resize{display:none}}
 @media(max-width:560px){.tab-mode-hint{margin:12px 16px 0}.tab-controls{padding:12px 16px}.tab-song-head{padding:18px 16px 6px}.tab-sheet{padding:8px 10px 22px}.tab-legend{margin:10px 16px 0}.tab-list{padding:10px 14px 18px}.tab-search{margin:14px 14px 4px}}
 @media print{
-  .app-header,.side-menu,.menu-backdrop,.tab-hero,.tab-load,.tab-list-panel,.tab-controls,.tab-mode-hint,.tab-back,.tuto-fab,gift-card-widget,.toast{display:none!important}
+  .app-header,.side-menu,.menu-backdrop,.tab-hero,.tab-load,.tab-list-panel,.tab-controls,.tab-mode-hint,.tab-back,.tuto-fab,.kb-float,gift-card-widget,.toast{display:none!important}
   body{background:#fff}.container{padding:0;width:100%}.panel{border:0;box-shadow:none}
   .tab-line{break-inside:avoid}
 }
