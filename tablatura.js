@@ -374,28 +374,46 @@ const KB=(()=>{
 /* ───────── Escuchar ───────── */
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
 tempo.addEventListener('input',()=>{$('tabTempoVal').textContent=tempo.value;});
-let timer=0,playing=false,soundReady=false,nowEl=null;
-function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';b.querySelector('path').setAttribute('d','M8 5.5v13l10.5-6.5Z');FAB.sync();}
+let timer=0,playing=false,paused=false,pos=0,cur=-1,soundReady=false,nowEl=null;
+const ICON_PLAY='M8 5.5v13l10.5-6.5Z',ICON_PAUSE='M7 5.5h3.6v13H7ZM13.4 5.5H17v13h-3.6Z';
+function ui(){
+  const b=$('tabPlay');b.classList.toggle('is-on',playing);
+  b.querySelector('span').textContent=playing?'Pausa':paused?'Continuar':'Escuchar';
+  b.querySelector('path').setAttribute('d',playing?ICON_PAUSE:ICON_PLAY);
+  FAB.sync();
+}
+function halt(keepMark){
+  playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();
+  if(!keepMark){KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}}
+}
+/* Pausa: el sonido se corta, la nota queda marcada y al continuar se retoma desde ella */
+function pause(){if(!playing)return;halt(true);paused=true;if(cur>=0)pos=cur;ui();}
+/* Detener del todo: vuelve al inicio (cambio de canción, de instrumento, fin de la canción) */
+function stop(){halt(false);paused=false;pos=0;ui();}
 function play(from){
-  if(playing&&from==null){stop();return;}
-  if(playing)stop();
+  if(playing&&from==null){pause();return;}
+  if(playing)halt(false);
   if(!window.CirculosPiano){toast('El sonido no está disponible');return;}
   window.CirculosPiano.unlock();
-  playing=true;const b=$('tabPlay');b.classList.add('is-on');b.querySelector('span').textContent='Detener';b.querySelector('path').setAttribute('d','M7 7h10v10H7Z');FAB.sync();
-  let i=from||0,lastLine=from!=null?(events[from]||{}).line:-1;
+  const resume=from==null&&paused;
+  if(from!=null)pos=from;else if(!paused)pos=0;
+  if(pos>=events.length)pos=0;
+  let lastLine=from!=null||resume?(events[pos]||{}).line:-1;
+  playing=true;paused=false;cur=-1;ui();
   const step=()=>{
     if(!playing)return;
-    if(i>=events.length){stop();return;}
-    const e=events[i],ms=e.dur*60000/(+tempo.value);
+    if(pos>=events.length){stop();return;}
+    const e=events[pos],ms=e.dur*60000/(+tempo.value);cur=pos;
     if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}
     KB.light(!e.rest&&e.pos?e.pos.p:null);
     if(!e.rest&&e.pos){
-      if(!e.tied)window.CirculosPiano.play(e.pos.p,{velocity:.8});
+      if(!e.tied||e.idx===resumeIdx)window.CirculosPiano.play(e.pos.p,{velocity:.8});
       const el=document.querySelector(`.tl-note[data-i="${e.idx}"]`);
       if(el){el.classList.add('is-now');nowEl=el;if(e.line!==lastLine){lastLine=e.line;el.closest('svg').scrollIntoView({block:'center',behavior:'smooth'});}}
     }
-    i++;timer=setTimeout(step,ms);
+    pos++;timer=setTimeout(step,ms);
   };
+  const resumeIdx=pos;                                            // la primera nota al continuar suena aunque esté ligada
   timer=setTimeout(step,soundReady?60:450);soundReady=true;      // la primera vez deja cargar el sonido
 }
 $('tabPlay').addEventListener('click',()=>play());
@@ -403,7 +421,7 @@ $('tabPlay').addEventListener('click',()=>play());
    Aparece abajo a la izquierda cuando el botón normal sale de la pantalla al bajar; se puede arrastrar. */
 const FAB=(()=>{
   const el=document.createElement('div');el.className='tab-fab';el.id='tabFab';
-  el.innerHTML='<button type="button" aria-label="Escuchar"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z"/></svg><svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.2"/></svg></button>';
+  el.innerHTML='<button type="button" aria-label="Escuchar"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z"/></svg><svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5.5h3.6v13H7ZM13.4 5.5H17v13h-3.6Z"/></svg></button>';
   document.body.appendChild(el);
   const btn=el.querySelector('button'),S=58;
   let st=null,raf=0,offscreen=false,drag=null,moved=false;
@@ -415,7 +433,7 @@ const FAB=(()=>{
   }
   const placeSoon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;place();});};
   function refresh(){const show=offscreen&&!$('tabSong').hidden;el.classList.toggle('show',show);if(show)place();}
-  function sync(){el.classList.toggle('is-on',playing);btn.setAttribute('aria-label',playing?'Detener':'Escuchar');}
+  function sync(){el.classList.toggle('is-on',playing);btn.setAttribute('aria-label',playing?'Pausa':paused?'Continuar':'Escuchar');}
   new IntersectionObserver(([en])=>{offscreen=!en.isIntersecting;refresh();},{rootMargin:'-90px 0px 0px 0px'}).observe($('tabPlay'));
   btn.addEventListener('pointerdown',e=>{try{btn.setPointerCapture(e.pointerId);}catch(err){}drag={x0:e.clientX,y0:e.clientY,px:st.x,py:st.y};moved=false;});
   btn.addEventListener('pointermove',e=>{
@@ -431,12 +449,12 @@ const FAB=(()=>{
 })();
 
 /* Al cambiar de pantalla o de pestaña, el sonido se corta */
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
-addEventListener('pagehide',stop);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+addEventListener('pagehide',()=>pause());
 document.addEventListener('click',e=>{if(e.target.closest('a[href],#menuBtn,.app-choice'))stop();},true);
 /* Tocar una nota de la tablatura: suena desde ahí (si ya estaba sonando, salta a esa nota) */
 $('tabSheet').addEventListener('click',e=>{const h=e.target.closest('.tl-hit');if(h)play(+h.dataset.i);});
-$('tabPrint').addEventListener('click',()=>{stop();print();});
+$('tabPrint').addEventListener('click',()=>{pause();print();});
 
 /* ───────── Inicio: abre el último PDF leído en este dispositivo ───────── */
 (async()=>{
