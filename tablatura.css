@@ -101,11 +101,20 @@ html[data-theme=dark] .kb-float{border-color:#41679c;background:#18212f;box-shad
 html[data-theme=dark] .kb-w rect{fill:#e9eef6;stroke:#8d9ab0}
 html[data-theme=dark] .kb-b rect{fill:#0c1018}
 html[data-theme=dark] .kb-key.is-on rect{fill:#f6bcd8;stroke:#eaa3c5}
+.tab-fab{position:fixed;left:0;top:0;z-index:51;width:58px;height:58px;pointer-events:none;will-change:transform}
+.tab-fab button{width:58px;height:58px;display:grid;place-items:center;padding:0;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:var(--accent);color:var(--contrast);box-shadow:0 14px 32px rgba(18,38,78,.3),0 4px 10px rgba(18,38,78,.18);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;opacity:0;transform:scale(.6);transition:opacity .2s,transform .3s cubic-bezier(.34,1.56,.64,1),background-color .2s}
+.tab-fab.show button{opacity:1;transform:none;pointer-events:auto}
+.tab-fab button:active{cursor:grabbing;transform:scale(.94)}
+.tab-fab svg{width:22px;height:22px;fill:currentColor}
+.tab-fab .i-stop,.tab-fab.is-on .i-play{display:none}
+.tab-fab.is-on .i-stop{display:block}
+.tab-fab.is-on button{background:#5b8fdb;color:#fff}
+html[data-theme=dark] .tab-fab button{border-color:rgba(255,255,255,.2)}
 .kb-resize{position:absolute;right:4px;bottom:4px;width:12px;height:12px;cursor:nwse-resize;opacity:.55;background:linear-gradient(135deg,transparent 45%,var(--muted) 45%,var(--muted) 55%,transparent 55%,transparent 70%,var(--muted) 70%,var(--muted) 80%,transparent 80%)}
 @media(pointer:coarse){.kb-resize{display:none}}
 @media(max-width:560px){.tab-inst{margin:4px 16px 12px}.tab-inst button{flex-direction:column;gap:3px;min-height:58px;font-size:13px}.tab-mode-hint{margin:12px 16px 0}.tab-controls{padding:12px 16px}.tab-song-head{padding:18px 16px 6px}.tab-sheet{padding:8px 10px 22px}.tab-legend{margin:10px 16px 0}.tab-list{padding:10px 14px 18px}.tab-search{margin:14px 14px 4px}}
 @media print{
-  .app-header,.side-menu,.menu-backdrop,.tab-hero,.tab-load,.tab-list-panel,.tab-controls,.tab-inst,.tab-mode-hint,.tab-back,.tuto-fab,.kb-float,gift-card-widget,.toast{display:none!important}
+  .app-header,.side-menu,.menu-backdrop,.tab-hero,.tab-load,.tab-list-panel,.tab-controls,.tab-inst,.tab-mode-hint,.tab-back,.tuto-fab,.kb-float,.tab-fab,gift-card-widget,.toast{display:none!important}
   body{background:#fff}.container{padding:0;width:100%}.panel{border:0;box-shadow:none}
   .tab-line{break-inside:avoid}
 }

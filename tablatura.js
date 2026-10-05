@@ -70,8 +70,8 @@ function renderList(){
 }
 $('tabSearch').addEventListener('input',renderList);
 $('tabList').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)openSong(+b.dataset.i);});
-$('tabOther').addEventListener('click',()=>{$('tabListPanel').hidden=true;$('tabSong').hidden=true;KB.refresh();$('tabLoad').hidden=false;$('tabFile').click();});
-$('tabBack').addEventListener('click',()=>{stop();$('tabSong').hidden=true;$('tabListPanel').hidden=false;KB.refresh();history.replaceState(null,'','#');});
+$('tabOther').addEventListener('click',()=>{$('tabListPanel').hidden=true;$('tabSong').hidden=true;KB.refresh();FAB.refresh();$('tabLoad').hidden=false;$('tabFile').click();});
+$('tabBack').addEventListener('click',()=>{stop();$('tabSong').hidden=true;$('tabListPanel').hidden=false;KB.refresh();FAB.refresh();history.replaceState(null,'','#');});
 
 /* ───────── Digitación: dónde tocar cada nota ─────────
    Guitarra: cuerdas de la 1.ª (MI agudo, índice 0) a la 6.ª (MI grave, índice 5).
@@ -375,13 +375,13 @@ const KB=(()=>{
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
 tempo.addEventListener('input',()=>{$('tabTempoVal').textContent=tempo.value;});
 let timer=0,playing=false,soundReady=false,nowEl=null;
-function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
+function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';b.querySelector('path').setAttribute('d','M8 5.5v13l10.5-6.5Z');FAB.sync();}
 function play(from){
   if(playing&&from==null){stop();return;}
   if(playing)stop();
   if(!window.CirculosPiano){toast('El sonido no está disponible');return;}
   window.CirculosPiano.unlock();
-  playing=true;const b=$('tabPlay');b.classList.add('is-on');b.querySelector('span').textContent='Detener';
+  playing=true;const b=$('tabPlay');b.classList.add('is-on');b.querySelector('span').textContent='Detener';b.querySelector('path').setAttribute('d','M7 7h10v10H7Z');FAB.sync();
   let i=from||0,lastLine=from!=null?(events[from]||{}).line:-1;
   const step=()=>{
     if(!playing)return;
@@ -399,6 +399,37 @@ function play(from){
   timer=setTimeout(step,soundReady?60:450);soundReady=true;      // la primera vez deja cargar el sonido
 }
 $('tabPlay').addEventListener('click',()=>play());
+/* ───────── Botón flotante de Escuchar / Detener ─────────
+   Aparece abajo a la izquierda cuando el botón normal sale de la pantalla al bajar; se puede arrastrar. */
+const FAB=(()=>{
+  const el=document.createElement('div');el.className='tab-fab';el.id='tabFab';
+  el.innerHTML='<button type="button" aria-label="Escuchar"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z"/></svg><svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="2.2"/></svg></button>';
+  document.body.appendChild(el);
+  const btn=el.querySelector('button'),S=58;
+  let st=null,raf=0,offscreen=false,drag=null,moved=false;
+  try{st=JSON.parse(store.get('tab-fab-pos','null'));}catch(e){st=null;}
+  function place(){
+    if(!st)st={x:16,y:innerHeight-S-24};
+    st.x=Math.max(4,Math.min(innerWidth-S-4,st.x));st.y=Math.max(70,Math.min(innerHeight-S-4,st.y));
+    el.style.transform=`translate3d(${st.x}px,${st.y}px,0)`;
+  }
+  const placeSoon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;place();});};
+  function refresh(){const show=offscreen&&!$('tabSong').hidden;el.classList.toggle('show',show);if(show)place();}
+  function sync(){el.classList.toggle('is-on',playing);btn.setAttribute('aria-label',playing?'Detener':'Escuchar');}
+  new IntersectionObserver(([en])=>{offscreen=!en.isIntersecting;refresh();},{rootMargin:'-90px 0px 0px 0px'}).observe($('tabPlay'));
+  btn.addEventListener('pointerdown',e=>{try{btn.setPointerCapture(e.pointerId);}catch(err){}drag={x0:e.clientX,y0:e.clientY,px:st.x,py:st.y};moved=false;});
+  btn.addEventListener('pointermove',e=>{
+    if(!drag)return;const dx=e.clientX-drag.x0,dy=e.clientY-drag.y0;
+    if(!moved&&Math.hypot(dx,dy)>6)moved=true;
+    if(moved){st.x=drag.px+dx;st.y=drag.py+dy;placeSoon();}
+  });
+  const end=()=>{if(drag&&moved)store.set('tab-fab-pos',JSON.stringify({x:Math.round(st.x),y:Math.round(st.y)}));drag=null;};
+  btn.addEventListener('pointerup',end);btn.addEventListener('pointercancel',end);
+  btn.addEventListener('click',()=>{if(moved){moved=false;return;}play();});
+  addEventListener('resize',()=>{if(el.classList.contains('show'))placeSoon();});
+  return{refresh,sync};
+})();
+
 /* Al cambiar de pantalla o de pestaña, el sonido se corta */
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
 addEventListener('pagehide',stop);
