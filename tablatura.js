@@ -212,7 +212,8 @@ function render(){
         else if(piano){
           if(e.tied&&lastNote&&lastNote.line===li)svg+=`<path class="tl-tie" d="M${(lastNote.x+8).toFixed(1)} ${NB+6} Q${((lastNote.x+c)/2).toFixed(1)} ${NB+13} ${(c-8).toFixed(1)} ${NB+6}"/>`;
           lastNote={x:c,line:li};
-          let g=`<g class="tl-note${e.tied?' is-tied':''}" data-i="${idx}"><text class="tl-name" x="${c.toFixed(1)}" y="${NB}">${esc(e.name)}</text>`;
+          const bw=e.name.length*8.4+12;
+          let g=`<g class="tl-note${e.tied?' is-tied':''}" data-i="${idx}"><rect class="tl-now" x="${(c-bw/2).toFixed(1)}" y="${NB-16-(e.dots>1?5.5:0)}" width="${bw.toFixed(1)}" height="${22+(Math.abs(e.dots)>1?5.5:0)}" rx="8"/><text class="tl-name" x="${c.toFixed(1)}" y="${NB}">${esc(e.name)}</text>`;
           for(let d=1;d<=Math.abs(e.dots);d++){const y=e.dots>0?NB-13-(d-1)*5.5:NB+5+(d-1)*5.5;g+=`<circle class="tl-oct" cx="${c.toFixed(1)}" cy="${y}" r="1.9"/>`;}
           svg+=g+'</g>';
           stems.push({x:c,t,dur:e.dur});
@@ -221,7 +222,8 @@ function render(){
           const y=TT+e.pos.s*SP,label=e.tied?`(${e.pos.f})`:String(e.pos.f);
           if(e.tied&&lastNote&&lastNote.line===li)svg+=`<path class="tl-tie" d="M${(lastNote.x+6).toFixed(1)} ${y-7} Q${((lastNote.x+c)/2).toFixed(1)} ${y-14} ${(c-8).toFixed(1)} ${y-7}"/>`;
           lastNote={x:c,line:li};
-          svg+=`<g class="tl-note" data-i="${idx}"><text class="tl-fret${e.tied?' is-tied':''}" x="${c.toFixed(1)}" y="${y+4}">${label}</text></g>`;
+          const bw=label.length*8+12;
+          svg+=`<g class="tl-note" data-i="${idx}"><rect class="tl-now" x="${(c-bw/2).toFixed(1)}" y="${y-8}" width="${bw}" height="16" rx="6"/><text class="tl-fret${e.tied?' is-tied':''}" x="${c.toFixed(1)}" y="${y+4}">${label}</text></g>`;
           stems.push({x:c,t,dur:e.dur});
         }
         if(hasLyr&&e.lyrics&&e.lyrics[verse])svg+=`<text class="tl-lyr" x="${c.toFixed(1)}" y="${LY}">${esc(e.lyrics[verse])}</text>`;
@@ -251,10 +253,13 @@ function render(){
     });
     svg+='</svg>';html+=svg;
   });
-  sheet.innerHTML=html;
+  sheet.innerHTML=html;lastW=sheet.clientWidth;
   KB.setSong(piano?notes.map(n=>n.midi):null,flats);
 }
-function syncInst(){const piano=instNow()==='piano';$('tabModeWrap').hidden=piano;$('tabKbWrap').hidden=!piano;}
+function syncInst(){const v=instNow(),piano=v==='piano';$('tabModeWrap').hidden=piano;$('tabKbWrap').hidden=!piano;
+  document.querySelectorAll('.tab-inst [data-inst]').forEach(b=>{const on=b.dataset.inst===v;b.classList.toggle('is-on',on);b.setAttribute('aria-checked',on);});}
+document.querySelector('.tab-inst').addEventListener('click',e=>{const b=e.target.closest('[data-inst]');if(!b||b.dataset.inst===instNow())return;
+  $('tabInst').value=b.dataset.inst;$('tabInst').dispatchEvent(new Event('change'));});
 ['tabVerse','tabChords','tabMode','tabInst'].forEach(id=>$(id).addEventListener('change',()=>{
   prefs.verse=+$('tabVerse').value;store.set('tab-verse',prefs.verse);store.set('tab-chords',$('tabChords').checked?'1':'0');store.set('tab-mode',$('tabMode').value);store.set('tab-inst',instNow());
   syncInst();stop();render();
@@ -263,7 +268,8 @@ $('tabChords').checked=prefs.chords;$('tabMode').value=MODES[prefs.mode]?prefs.m
 $('tabInst').value=['guitar','uke','piano'].includes(prefs.inst)?prefs.inst:'guitar';syncInst();
 $('tabKb').checked=prefs.kb;
 $('tabKb').addEventListener('change',()=>{store.set('tab-kb',$('tabKb').checked?'1':'0');KB.refresh();});
-let rz=0;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!$('tabSong').hidden)render();},200);});
+let rz=0,lastW=0;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{     // en el celular la barra de direcciones cambia el alto: eso no redibuja
+  const w=$('tabSheet').clientWidth;if(!$('tabSong').hidden&&w&&w!==lastW){lastW=w;render();}},200);});
 document.addEventListener('circulos:notation',()=>{if(song)render();});
 
 /* ───────── Teclado flotante (solo piano) ─────────
@@ -275,7 +281,7 @@ const KB=(()=>{
   el.innerHTML='<div class="kb-grip" aria-hidden="true"></div><button class="kb-close" type="button" aria-label="Quitar el teclado"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg></button><svg class="kb-svg" role="img" aria-label="Teclado de piano"></svg><span class="kb-resize" aria-hidden="true"></span>';
   document.body.appendChild(el);
   const svg=el.querySelector('.kb-svg'),WW=10,WH=42,BW=6.2,BH=26;
-  let lo=60,hi=72,flats=false,has=false,nWhite=8,st=null,lit=null;
+  let lo=60,hi=72,flats=false,has=false,nWhite=8,st=null,lit=null,drawn='';
   try{st=JSON.parse(store.get('tab-kb-pos','null'));}catch(e){st=null;}
   const minW=()=>Math.min(200,innerWidth-16),maxW=()=>Math.max(innerWidth*1.6,1200);
   const clampW=w=>Math.max(minW(),Math.min(maxW(),w));
@@ -285,8 +291,9 @@ const KB=(()=>{
     if(!st)st=defaults();
     st.w=clampW(st.w);
     st.x=Math.max(60-st.w,Math.min(innerWidth-60,st.x));st.y=Math.max(4,Math.min(innerHeight-44,st.y));
-    el.style.width=st.w+'px';el.style.left=st.x+'px';el.style.top=st.y+'px';
+    el.style.width=st.w+'px';el.style.transform=`translate3d(${st.x}px,${st.y}px,0)`;
   }
+  let raf=0;const placeSoon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;place();});};
   const save=()=>store.set('tab-kb-pos',JSON.stringify({x:Math.round(st.x),y:Math.round(st.y),w:Math.round(st.w)}));
   function dots(cx,y0,d,step){let h='';for(let k=1;k<=Math.abs(d);k++)h+=`<circle class="kb-oct" cx="${cx}" cy="${d>0?y0-(k-1)*step:y0+(k-1)*step}" r=".85"/>`;return h;}
   function draw(){
@@ -306,8 +313,10 @@ const KB=(()=>{
   }
   function setSong(midis,fl){
     if(!midis||!midis.length){has=false;refresh();return;}
-    lo=Math.min(...midis);hi=Math.max(...midis);while(isBlack(lo))lo--;while(isBlack(hi))hi++;
-    flats=fl;has=true;draw();refresh();
+    let a=Math.min(...midis),z=Math.max(...midis);while(isBlack(a))a--;while(isBlack(z))z++;
+    const key=a+'|'+z+'|'+fl+'|'+latin();
+    if(key!==drawn){lo=a;hi=z;flats=fl;draw();drawn=key;}
+    has=true;refresh();
   }
   function light(m){
     if(lit)lit.classList.remove('is-on');lit=null;
@@ -329,11 +338,11 @@ const KB=(()=>{
     pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pinch&&pts.size>=2){
       const g=two(),w=clampW(pinch.w0*g.d/pinch.d0),r=w/pinch.w0;
-      st.w=w;st.x=g.cx-(pinch.cx0-pinch.px)*r;st.y=g.cy-(pinch.cy0-pinch.py)*r;place();
+      st.w=w;st.x=g.cx-(pinch.cx0-pinch.px)*r;st.y=g.cy-(pinch.cy0-pinch.py)*r;placeSoon();
     }else if(drag){
       const dx=e.clientX-drag.x0,dy=e.clientY-drag.y0;
       if(!drag.moved&&Math.hypot(dx,dy)>6)drag.moved=true;
-      if(drag.moved){if(drag.resize)st.w=clampW(drag.w0+dx);else{st.x=drag.px+dx;st.y=drag.py+dy;}place();}
+      if(drag.moved){if(drag.resize)st.w=clampW(drag.w0+dx);else{st.x=drag.px+dx;st.y=drag.py+dy;}placeSoon();}
     }
   });
   const end=e=>{
@@ -352,18 +361,18 @@ const KB=(()=>{
   el.addEventListener('wheel',e=>{                                  // PC: Ctrl + rueda o pellizco del touchpad
     if(!e.ctrlKey)return;e.preventDefault();
     const w=clampW(st.w*Math.exp(-e.deltaY*0.01)),r=w/st.w;
-    st.x=e.clientX-(e.clientX-st.x)*r;st.y=e.clientY-(e.clientY-st.y)*r;st.w=w;place();clearTimeout(el._t);el._t=setTimeout(save,300);
+    st.x=e.clientX-(e.clientX-st.x)*r;st.y=e.clientY-(e.clientY-st.y)*r;st.w=w;placeSoon();clearTimeout(el._t);el._t=setTimeout(save,300);
   },{passive:false});
   el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;store.set('tab-kb','0');refresh();});
-  addEventListener('resize',()=>{if(!el.hidden)place();});
+  addEventListener('resize',()=>{if(!el.hidden)placeSoon();});
   return{setSong,refresh,light};
 })();
 
 /* ───────── Escuchar ───────── */
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
 tempo.addEventListener('input',()=>{$('tabTempoVal').textContent=tempo.value;});
-let timer=0,playing=false,soundReady=false;
-function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);document.querySelectorAll('.tl-note.is-now').forEach(n=>n.classList.remove('is-now'));const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
+let timer=0,playing=false,soundReady=false,nowEl=null;
+function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
 function play(from){
   if(playing&&from==null){stop();return;}
   if(playing)stop();
@@ -375,12 +384,12 @@ function play(from){
     if(!playing)return;
     if(i>=events.length){stop();return;}
     const e=events[i],ms=e.dur*60000/(+tempo.value);
-    document.querySelectorAll('.tl-note.is-now').forEach(n=>n.classList.remove('is-now'));
+    if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}
     KB.light(!e.rest&&e.pos?e.pos.p:null);
     if(!e.rest&&e.pos){
       if(!e.tied)window.CirculosPiano.play(e.pos.p,{velocity:.8});
       const el=document.querySelector(`.tl-note[data-i="${e.idx}"]`);
-      if(el){el.classList.add('is-now');if(e.line!==lastLine){lastLine=e.line;el.closest('svg').scrollIntoView({block:'center',behavior:'smooth'});}}
+      if(el){el.classList.add('is-now');nowEl=el;if(e.line!==lastLine){lastLine=e.line;el.closest('svg').scrollIntoView({block:'center',behavior:'smooth'});}}
     }
     i++;timer=setTimeout(step,ms);
   };
