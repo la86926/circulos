@@ -50,7 +50,7 @@ const toggle=entry=>entry&&toggleKey(entry.id);
 let fb=null,ref=null,stopSnap=null,uploadTimer=0,lastUpload=0,connecting=null;
 const KEY_AT='circulos-favs-at',KEY_SYNCED='circulos-favs-synced';
 const KEY_MOVED='circulos-moved-to',KEY_MOVED_NICK='circulos-moved-nick';
-/* Si el nick se cambió, el documento viejo queda como aviso que apunta al nuevo */
+/* Si el ID se cambió, el documento viejo queda como aviso que apunta al nuevo */
 const movedTo=d=>{const st=d&&d.l1&&d.l1.storage;return st&&st[KEY_MOVED]?{id:st[KEY_MOVED],nick:st[KEY_MOVED_NICK]||st[KEY_MOVED].replace(DOC_PREFIX,'')}:null;};
 const localAt=()=>Number(store.get(KEY_AT))||0;
 async function firebase(){
@@ -92,7 +92,7 @@ function errorText(err){
   if(code.includes('admin-restricted')||code.includes('operation-not-allowed'))return 'El inicio de sesión anónimo de Firebase está desactivado.';
   return 'No se pudo sincronizar'+(code?` (${code})`:'')+'.';
 }
-async function connect(name,{silent=false}={}){
+async function connect(name,{silent=false,mode=''}={}){
   name=String(name||'').trim();
   if(!NICK_RE.test(name))throw new Error('Usa solo letras y números, de 4 a 24 caracteres.');
   setCloud('busy','Conectando…');
@@ -103,13 +103,15 @@ async function connect(name,{silent=false}={}){
   const snap=await fs.getDoc(ref);
   docExists=snap.exists();
   const moved=docExists?movedTo(snap.data()):null;
-  if(moved&&silent&&moved.id!==id){                                  // este dispositivo tenía el nick viejo: sigue al nuevo
+  if(moved&&silent&&moved.id!==id){                                  // este dispositivo tenía el ID viejo: sigue al nuevo
     store.set(KEY_NICK,moved.nick);return connect(moved.nick,{silent:true});
   }
-  const remote=docExists&&!moved?readRemote(snap.data()):null;       // un nick que quedó libre se usa como nuevo
+  const remote=docExists&&!moved?readRemote(snap.data()):null;       // un ID que quedó libre se usa como nuevo
+  if(mode==='enter'&&!remote){ref=null;setCloud('off');throw new Error(`No existe el ID «${name}». Si es la primera vez, toca Crear.`);}
+  if(mode==='create'&&remote){ref=null;setCloud('off');throw new Error(`El ID «${name}» ya existe. Si es tuyo, toca Entrar; si no, elige otro.`);}
   const firstTimeHere=store.get(KEY_SYNCED)!==id;
   nick=name;store.set(KEY_NICK,nick);
-  if(!remote){await upload();}                                       // nick nuevo: sube lo de este dispositivo
+  if(!remote){await upload();}                                       // ID nuevo: sube lo de este dispositivo
   else if(firstTimeHere){                                            // primera vez en este dispositivo: se juntan ambos
     const joined=merge(remote.list,favs),changed=joined.length!==remote.list.length;
     favs=joined;store.set(KEY_AT,String(changed?Date.now():remote.at));saveLocal();
@@ -120,7 +122,7 @@ async function connect(name,{silent=false}={}){
   store.set(KEY_SYNCED,id);
   listen();
   setCloud('ok');
-  if(!silent)toast(remote?`¡Hola, ${nick}! Tus acordes ya están aquí.`:`Listo, ${nick}. Tus acordes se guardan en la nube.`);
+  if(!silent)toast(remote?`¡Hola, ${nick}! Tus acordes ya están aquí.`:`Listo, creaste el ID «${nick}». Tus acordes se guardan en la nube.`);
 }
 function listen(){
   if(!ref||!fb)return;
@@ -131,7 +133,7 @@ function listen(){
     const d=s.data();
     const moved=movedTo(d);
     if(moved){
-      if(d.updatedBy!==clientId){stopSnap?.();stopSnap=null;ref=null;toast(`Tu nick cambió a «${moved.nick}» en otro dispositivo`);nick=moved.nick;store.set(KEY_NICK,nick);reconnect();}
+      if(d.updatedBy!==clientId){stopSnap?.();stopSnap=null;ref=null;toast(`Tu ID cambió a «${moved.nick}» en otro dispositivo`);nick=moved.nick;store.set(KEY_NICK,nick);reconnect();}
       return;
     }
     if(d.updatedBy===clientId&&Date.now()-lastUpload<4000){setCloud('ok');return;}
@@ -172,8 +174,8 @@ function reconnect(){
 }
 addEventListener('online',reconnect);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)reconnect();});
-/* Cambiar el nick: los favoritos pasan al nick nuevo y el viejo queda libre.
-   Los demás dispositivos que tenían el nick viejo se cambian solos al nuevo. */
+/* Cambiar el ID: los favoritos pasan al ID nuevo y el viejo queda libre.
+   Los demás dispositivos que tenían el ID viejo se cambian solos al nuevo. */
 async function rename(oldName,newName){
   oldName=String(oldName||'').trim();newName=String(newName||'').trim();
   if(!NICK_RE.test(oldName)||!NICK_RE.test(newName))throw new Error('Usa solo letras y números, de 4 a 24 caracteres.');
@@ -181,14 +183,14 @@ async function rename(oldName,newName){
   if(oldId===newId){                                                   // solo cambian mayúsculas o minúsculas
     if(nick&&DOC_PREFIX+nick.toLowerCase()===oldId){nick=newName;store.set(KEY_NICK,nick);refreshSheet();return;}
   }
-  setCloud(nick?'busy':'off','Cambiando el nick…');
+  setCloud(nick?'busy':'off','Cambiando el ID…');
   const {db,fs}=await firebase();
   const oldRef=fs.doc(db,COLLECTION,oldId),newRef=fs.doc(db,COLLECTION,newId);
   await fs.runTransaction(db,async tx=>{
     const o=await tx.get(oldRef);
-    if(!o.exists()||movedTo(o.data())||!readRemote(o.data()))throw new Error(`No existe el nick «${oldName}». Revisa cómo lo escribiste.`);
+    if(!o.exists()||movedTo(o.data())||!readRemote(o.data()))throw new Error(`No existe el ID «${oldName}». Revisa cómo lo escribiste.`);
     const n=await tx.get(newRef);
-    if(n.exists()&&!movedTo(n.data()))throw new Error(`El nick «${newName}» ya lo usa alguien. Elige otro.`);
+    if(n.exists()&&!movedTo(n.data()))throw new Error(`El ID «${newName}» ya lo usa alguien. Elige otro.`);
     const d=o.data(),meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
     tx.set(newRef,{l1:d.l1,l2:d.l2||{storage:{},page:{}},...meta});
     tx.set(oldRef,{l1:{storage:{[KEY_MOVED]:newId,[KEY_MOVED_NICK]:newName},page:{}},l2:{storage:{},page:{}},...meta});
@@ -197,7 +199,7 @@ async function rename(oldName,newName){
   stopSnap?.();stopSnap=null;ref=null;
   if(wasHere)store.set(KEY_SYNCED,newId);                            // mismos favoritos: no hace falta juntarlos
   await connect(newName,{silent:true});
-  toast(`Listo, ahora tu nick es «${newName}»`);
+  toast(`Listo, ahora tu ID es «${newName}»`);
 }
 function signOut(){
   stopSnap?.();stopSnap=null;ref=null;nick='';store.del(KEY_NICK);store.del(KEY_SYNCED);setCloud('off');
@@ -267,7 +269,8 @@ function openSheet(){
     });
     sheet.addEventListener('submit',async e=>{
       e.preventDefault();const input=sheet.querySelector('#favNick'),msg=sheet.querySelector('.fav-error');
-      try{msg.textContent='';await connect(input.value);}catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo conectar. Revisa tu internet.');if(nick)setCloud('error',errorText(err));else setCloud('off');}
+      const mode=(e.submitter&&e.submitter.dataset.mode)||'enter';
+      try{msg.textContent='';await connect(input.value,{mode});}catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo conectar. Revisa tu internet.');if(nick)setCloud('error',errorText(err));else setCloud('off');}
     });
     sheet.addEventListener('click',e=>{if(e.target.closest('[data-signout]'))signOut();if(e.target.closest('[data-rename]'))openRename();});
     sheet.addEventListener('click',e=>{const t=e.target.closest('[data-fav-tab]');if(t){favTab=t.dataset.favTab;refreshSheet();}});
@@ -277,7 +280,11 @@ function openSheet(){
   lib()?.load().then(refreshSheet).catch(()=>{});
   requestAnimationFrame(()=>{sheet.classList.add('open');document.dispatchEvent(new CustomEvent('circulos:favsheet',{detail:true}));});
 }
-/* Ventana para cambiar el nick: nick actual y nick nuevo */
+const ICON_IN='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4M14 12H4"/></svg>';
+const ICON_NEW='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+const ICON_EDIT='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>';
+const ICON_OUT='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 16l4-4-4-4M19 12H9"/></svg>';
+/* Ventana para cambiar el ID: ID actual y ID nuevo */
 let renameSheet=null;
 function openRename(){
   if(!renameSheet){
@@ -285,15 +292,15 @@ function openRename(){
     renameSheet.innerHTML=`<div class="app-sheet-backdrop" data-close></div>
       <section class="app-sheet-card" role="dialog" aria-modal="true" aria-labelledby="nickTitle">
         <button class="app-sheet-close" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-        <h2 id="nickTitle">Cambiar nick</h2>
+        <h2 id="nickTitle">Cambiar ID</h2>
         <form class="fav-form nick-form" autocomplete="off">
-          <label for="nickOld">Nick actual</label>
-          <input id="nickOld" maxlength="24" autocapitalize="off" spellcheck="false" placeholder="Tu nick de ahora">
-          <label for="nickNew">Nick nuevo</label>
+          <label for="nickOld">ID actual</label>
+          <input id="nickOld" maxlength="24" autocapitalize="off" spellcheck="false" placeholder="Tu ID de ahora">
+          <label for="nickNew">ID nuevo</label>
           <input id="nickNew" maxlength="24" autocapitalize="off" spellcheck="false" placeholder="El que quieres usar">
-          <p class="fav-hint">Solo letras y números, de 4 a 24. Tus acordes pasan al nick nuevo en todos tus dispositivos.</p>
+          <p class="fav-hint">Solo letras y números, de 4 a 24. Tus acordes pasan al ID nuevo en todos tus dispositivos.</p>
           <p class="fav-error" role="alert"></p>
-          <button type="submit" class="nick-save">Cambiar nick</button>
+          <button type="submit" class="nick-save">Cambiar ID</button>
         </form>
       </section>`;
     document.body.appendChild(renameSheet);
@@ -302,11 +309,11 @@ function openRename(){
       e.preventDefault();const msg=renameSheet.querySelector('.fav-error'),btn=renameSheet.querySelector('.nick-save');
       msg.textContent='';btn.disabled=true;btn.textContent='Cambiando…';
       try{await rename(renameSheet.querySelector('#nickOld').value,renameSheet.querySelector('#nickNew').value);renameSheet.classList.remove('open');}
-      catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo cambiar el nick.');if(nick)setCloud(ref?'ok':'error');else setCloud('off');}
-      finally{btn.disabled=false;btn.textContent='Cambiar nick';}
+      catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo cambiar el ID.');if(nick)setCloud(ref?'ok':'error');else setCloud('off');}
+      finally{btn.disabled=false;btn.textContent='Cambiar ID';}
     });
   }
-  renameSheet.querySelector('#nickOld').value=nick||'';renameSheet.querySelector('#nickNew').value='';renameSheet.querySelector('.fav-error').textContent='';
+  renameSheet.querySelector('#nickOld').value=nick||sheet?.querySelector('#favNick')?.value.trim()||'';renameSheet.querySelector('#nickNew').value='';renameSheet.querySelector('.fav-error').textContent='';
   requestAnimationFrame(()=>{renameSheet.classList.add('open');setTimeout(()=>renameSheet.querySelector(nick?'#nickNew':'#nickOld').focus(),250);});
 }
 function refreshSheet(){
@@ -314,11 +321,13 @@ function refreshSheet(){
   const acc=sheet.querySelector('#favAccount');
   if(nick){
     const label={ok:'Sincronizado · se actualiza solo en tus dispositivos',busy:cloud.text||'Conectando…',error:cloud.text||'Sin conexión: guardado en este dispositivo',off:''}[cloud.state];
-    acc.innerHTML=`<div class="fav-user"><span class="fav-dot is-${cloud.state}"></span><div><strong>${escapeHtml(nick)}</strong><small>${label}</small></div><button type="button" class="fav-link" data-rename>Cambiar</button><button type="button" class="fav-link" data-signout>Salir</button></div>`;
+    acc.innerHTML=`<div class="fav-user"><span class="fav-dot is-${cloud.state}"></span><div><small class="fav-id-label">Tu ID</small><strong>${escapeHtml(nick)}</strong><small>${label}</small></div></div>
+      <div class="fav-actions fav-actions-2"><button type="button" class="fav-btn" data-rename>${ICON_EDIT}Cambiar ID</button><button type="button" class="fav-btn" data-signout>${ICON_OUT}Salir</button></div>`;
   }else if(!acc.querySelector('form')){
-    acc.innerHTML=`<form class="fav-form" autocomplete="off"><label for="favNick">Escribe un nick: si es nuevo se crea, y si ya lo tienes entras a tus acordes en este dispositivo.</label>
-      <div class="fav-row"><input id="favNick" maxlength="24" placeholder="Tu nick" autocapitalize="off" spellcheck="false" inputmode="text"><button type="submit">Entrar o crear</button></div><p class="fav-error" role="alert"></p>
-      <button type="button" class="fav-link fav-link-small" data-rename>Cambiar mi nick</button></form>`;
+    acc.innerHTML=`<form class="fav-form" autocomplete="off"><label for="favNick">Escribe tu ID para ver tus acordes en cualquier dispositivo. ¿Primera vez? Toca <b>Crear</b>.</label>
+      <input class="fav-id-input" id="favNick" maxlength="24" placeholder="Tu ID" autocapitalize="off" spellcheck="false" inputmode="text">
+      <div class="fav-actions"><button type="submit" class="fav-btn" data-mode="enter">${ICON_IN}Entrar</button><button type="submit" class="fav-btn" data-mode="create">${ICON_NEW}Crear</button><button type="button" class="fav-btn" data-rename>${ICON_EDIT}Cambiar ID</button></div>
+      <p class="fav-error" role="alert"></p></form>`;
   }
   const g=sheet.querySelector('#favGrid'),L=lib();
   sheet.querySelectorAll('[data-fav-tab]').forEach(b=>{const on=b.dataset.favTab===favTab,n=favs.filter(f=>instOf(f)===b.dataset.favTab).length;

@@ -259,8 +259,17 @@ html[data-theme="dark"] .act-fav.is-on svg{fill:#7fb1e8;stroke:#7fb1e8}
 .fav-link{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:6px}
 .fav-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 .fav-tabs{max-width:380px;margin:0 0 16px}
-.fav-user .fav-link+.fav-link{margin-left:-4px}
-.fav-link-small{margin-top:2px;padding:4px 2px;font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.fav-id-input{width:100%;height:46px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:16px;outline:0}
+.fav-id-input:focus{border-color:#8bb7e6;box-shadow:0 0 0 3px rgba(139,183,230,.3)}
+.fav-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr);gap:8px;margin-top:10px}
+.fav-actions-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fav-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 10px;border:0;border-radius:999px;background:var(--accent);color:var(--contrast);font:inherit;font-size:14px;font-weight:760;white-space:nowrap;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s}
+.fav-btn:active{transform:scale(.94)}
+.fav-btn:disabled{opacity:.55}
+.fav-btn svg{width:17px;height:17px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fav-id-label{margin:0 0 1px!important;font-size:10px!important;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:440px){.fav-actions:not(.fav-actions-2) .fav-btn{font-size:13px;gap:5px;padding:0 6px}.fav-actions:not(.fav-actions-2) .fav-btn svg{width:15px;height:15px}}
+@media(max-width:350px){.fav-actions:not(.fav-actions-2){grid-template-columns:1fr 1fr}.fav-actions:not(.fav-actions-2) [data-rename]{grid-column:1/-1}}
 .nick-sheet{z-index:96}
 .nick-sheet .app-sheet-card{width:min(440px,calc(100% - 16px))}
 .nick-form{display:grid;gap:6px}

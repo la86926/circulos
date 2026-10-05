@@ -143,7 +143,7 @@ const STEPS = {
       at: '.app-choice[href="acordes.html"]', onEnter: menuOpen, onExit: menuClose },
 
     { title: 'Favoritos',
-      text: 'Aquí están los acordes que guardaste. Escribe un nick (sin contraseña) y los verás en cualquier dispositivo donde uses el mismo nick.',
+      text: 'Aquí están los acordes que guardaste. Crea tu ID (sin contraseña) y los verás en cualquier dispositivo donde entres con ese mismo ID.',
       ring: '#favMenuItem', radius: 20, hop: '#favMenuItem', hopY: '-5px',
       at: '#favMenuItem', onEnter: menuOpen, onExit: menuClose },
 
@@ -206,7 +206,7 @@ const STEPS = {
       detail: true, onEnter: detailOpen, onExit: detailClose },
 
     { title: 'Favoritos',
-      text: 'Tus acordes guardados están en el menú. Escribe un nick (sin contraseña) y los verás en cualquier dispositivo con el mismo nick.',
+      text: 'Tus acordes guardados están en el menú. Crea tu ID (sin contraseña) y los verás en cualquier dispositivo donde entres con ese mismo ID.',
       ring: '#favMenuItem', radius: 20, hop: '#favMenuItem', hopY: '-5px',
       at: '#favMenuItem', onEnter: menuOpen, onExit: menuClose },
 
@@ -226,12 +226,12 @@ const STEPS = {
       text: 'Tu cancionero: aquí quedan los acordes, las posiciones y las formas de piano que guardaste con el corazón.',
       next: 'Empezar', skip: 'Ahora no', at: '#tutoNext', gesture: 'tap' },
 
-    { title: 'Tu nick', ring: '#favAccount', radius: 20, pad: 5,
+    { title: 'Tu ID', ring: '#favAccount', radius: 20, pad: 5,
       variant() {
         const signed = !!$('#favAccount .fav-user');
         return signed
-          ? { text: 'Estás conectado. Escribe este mismo nick en otro celular o computadora y verás tus acordes allí. Con «Cambiar» eliges otro nick sin perder nada; «Salir» los deja solo en este dispositivo.', at: '#favAccount [data-rename]', gesture: 'tap', hop: '#favAccount [data-rename]', hopY: '-4px' }
-          : { text: 'Escribe un nick (letras y números, sin contraseña) y toca «Entrar o crear»: si es nuevo se crea y si ya lo tienes, entras. En otro celular o computadora escribe el mismo nick y aparecerán tus acordes.', at: '#favNick', gesture: 'tap', hop: '#favAccount button[type="submit"]', hopY: '-4px' };
+          ? { text: 'Este es tu ID. Escríbelo en otro celular o computadora y toca «Entrar» para ver tus acordes allí. Con «Cambiar ID» eliges otro sin perder nada; «Salir» los deja solo en este dispositivo.', at: '#favAccount [data-rename]', gesture: 'tap', hop: '#favAccount .fav-btn', hopY: '-4px' }
+          : { text: 'Escribe tu ID (letras y números, sin contraseña). Si es la primera vez toca «Crear»; si ya tienes uno, «Entrar». Con «Cambiar ID» lo reemplazas por otro.', at: '#favNick', gesture: 'tap', hop: '#favAccount .fav-btn', hopY: '-4px' };
       } },
 
     { title: 'Guitarra o piano',
