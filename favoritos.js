@@ -98,7 +98,8 @@ async function connect(name,{silent=false}={}){
   const id=DOC_PREFIX+name.toLowerCase();
   ref=fs.doc(db,COLLECTION,id);
   const snap=await fs.getDoc(ref);
-  const remote=snap.exists()?readRemote(snap.data()):null;
+  docExists=snap.exists();
+  const remote=docExists?readRemote(snap.data()):null;
   const firstTimeHere=store.get(KEY_SYNCED)!==id;
   nick=name;store.set(KEY_NICK,nick);
   if(!remote){await upload();}                                       // nick nuevo: sube lo de este dispositivo
@@ -119,6 +120,7 @@ function listen(){
   stopSnap?.();
   stopSnap=fb.fs.onSnapshot(ref,{includeMetadataChanges:false},s=>{
     if(!s.exists())return;
+    docExists=true;
     const d=s.data();
     if(d.updatedBy===clientId&&Date.now()-lastUpload<4000){setCloud('ok');return;}
     const r=readRemote(d);
@@ -127,11 +129,19 @@ function listen(){
     setCloud('ok');
   },err=>{console.error('Favoritos:',err);setCloud('error',errorText(err));});
 }
+/* Igual que el ajedrez: al crear el perfil se escribe el documento completo (l1 y l2) y después solo se
+   actualiza l1. Si Firebase rechaza la actualización parcial, se intenta una vez con el documento completo. */
+let docExists=false;
 async function upload(){
   if(!ref||!fb)return;
   lastUpload=Date.now();
-  const at=localAt()||Date.now();
-  await fb.fs.setDoc(ref,{l1:{storage:{[KEY_FAVS]:JSON.stringify(favs),[KEY_AT]:String(at)},page:{}},timestamp:fb.fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1},{merge:true});
+  const at=localAt()||Date.now(),{fs}=fb;
+  const l1={storage:{[KEY_FAVS]:JSON.stringify(favs),[KEY_AT]:String(at)},page:{}};
+  const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
+  const full=()=>fs.setDoc(ref,{l1,l2:{storage:{},page:{}},...meta});
+  if(!docExists){await full();docExists=true;return;}
+  try{await fs.setDoc(ref,{l1,...meta},{merge:true});}
+  catch(err){if(String(err&&err.code).includes('permission-denied')){await full();return;}throw err;}
 }
 function scheduleUpload(){
   store.set(KEY_AT,String(Date.now()));                              // hora de este cambio
