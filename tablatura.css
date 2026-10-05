@@ -90,18 +90,24 @@ html[data-theme=dark] .kb-float{border-color:#41679c;background:#18212f;box-shad
 .kb-close:hover{opacity:1;transform:scale(1.08)}
 .kb-close svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
 .kb-svg{display:block;width:100%;height:auto;overflow:visible}
-.kb-key rect{transition:fill .08s}
 .kb-w rect{fill:#fff;stroke:#c3cede;stroke-width:.35}
 .kb-w text{fill:#5d6c82;font-size:3.4px;font-weight:800;text-anchor:middle}
 .kb-w .kb-oct{fill:#5d6c82}
 .kb-b rect{fill:#1c2431}
 .kb-b text{fill:#fff;font-size:2.5px;font-weight:800;text-anchor:middle;opacity:0}
 .kb-b .kb-oct{fill:#fff;opacity:0}
+.kb-w.in-bar rect{fill:#d3e3f9;stroke:#6f9ad6;stroke-width:.5}
+.kb-b.in-bar rect{fill:#4f7fc9}
+.kb-w.in-bar text,.kb-w.in-bar .kb-oct{fill:#2f64a8}
+.kb-b.in-bar text,.kb-b.in-bar .kb-oct{opacity:1}
 .kb-key.is-on rect{fill:#ef77b4}
 .kb-b.is-on rect{fill:#d6408a}
 .kb-key.is-on text,.kb-key.is-on .kb-oct{fill:#fff;opacity:1}
+.kb-key.is-on rect{stroke:#c23a7e}
 html[data-theme=dark] .kb-w rect{fill:#e9eef6;stroke:#8d9ab0}
 html[data-theme=dark] .kb-b rect{fill:#0c1018}
+html[data-theme=dark] .kb-w.in-bar rect{fill:#a9c6ef;stroke:#5b8fdb}
+html[data-theme=dark] .kb-b.in-bar rect{fill:#4f7fc9}
 html[data-theme=dark] .kb-w.is-on rect{fill:#ef77b4}
 html[data-theme=dark] .kb-b.is-on rect{fill:#d6408a}
 .kb-resize{position:absolute;right:4px;bottom:4px;width:12px;height:12px;cursor:nwse-resize;opacity:.55;background:linear-gradient(135deg,transparent 45%,var(--muted) 45%,var(--muted) 55%,transparent 55%,transparent 70%,var(--muted) 70%,var(--muted) 80%,transparent 80%)}

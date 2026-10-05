@@ -305,7 +305,7 @@ const KB=(()=>{
       h+=`<g class="kb-key kb-w" data-m="${m}"><rect x="${i*WW+.3}" y=".3" width="${WW-.6}" height="${WH-.6}" rx="1.3"/><text x="${cx}" y="${WH-6.2}">${esc(noteName(m,flats))}</text>${d>0?dots(cx,WH-12.6,d,2.4):dots(cx,WH-3.1,d,2.4)}</g>`;});
     for(let m=lo;m<=hi;m++)if(isBlack(m)&&wx[m-1]!=null){const x=wx[m-1]+WW-BW/2,cx=x+BW/2,d=octDots(m);
       h+=`<g class="kb-key kb-b" data-m="${m}"><rect x="${x}" y="0" width="${BW}" height="${BH}" rx="1"/><text x="${cx}" y="${BH-4.4}">${esc(noteName(m,flats))}</text>${d>0?dots(cx,BH-9.4,d,2):dots(cx,BH-2,d,2)}</g>`;}
-    svg.innerHTML=h;lit=null;
+    svg.innerHTML=h;lit=null;barKeys=[];
   }
   function refresh(){
     const show=has&&$('tabKb').checked&&!$('tabSong').hidden&&instNow()==='piano';
@@ -317,6 +317,12 @@ const KB=(()=>{
     const key=a+'|'+z+'|'+fl+'|'+latin();
     if(key!==drawn){lo=a;hi=z;flats=fl;draw();drawn=key;}
     has=true;refresh();
+  }
+  let barKeys=[];
+  function bar(midis){                                             // todas las teclas del compás que suena
+    barKeys.forEach(k=>k.classList.remove('in-bar'));barKeys=[];
+    if(!midis)return;
+    new Set(midis).forEach(m=>{const k=svg.querySelector(`.kb-key[data-m="${m}"]`);if(k){k.classList.add('in-bar');barKeys.push(k);}});
   }
   function light(m){
     if(lit)lit.classList.remove('is-on');lit=null;
@@ -365,14 +371,14 @@ const KB=(()=>{
   },{passive:false});
   el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;store.set('tab-kb','0');refresh();});
   addEventListener('resize',()=>{if(!el.hidden)placeSoon();});
-  return{setSong,refresh,light};
+  return{setSong,refresh,light,bar};
 })();
 
 /* ───────── Escuchar ───────── */
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
 tempo.addEventListener('input',()=>{$('tabTempoVal').textContent=tempo.value;});
-let timer=0,playing=false,soundReady=false,nowEl=null;
-function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
+let timer=0,playing=false,soundReady=false,nowEl=null,curBar=-1;
+function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);KB.bar(null);curBar=-1;if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
 function play(from){
   if(playing&&from==null){stop();return;}
   if(playing)stop();
@@ -385,6 +391,7 @@ function play(from){
     if(i>=events.length){stop();return;}
     const e=events[i],ms=e.dur*60000/(+tempo.value);
     if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}
+    if(e.mi!==curBar){curBar=e.mi;KB.bar(events.filter(x=>x.mi===e.mi&&!x.rest&&x.pos).map(x=>x.pos.p));}
     KB.light(!e.rest&&e.pos?e.pos.p:null);
     if(!e.rest&&e.pos){
       if(!e.tied)window.CirculosPiano.play(e.pos.p,{velocity:.8});
