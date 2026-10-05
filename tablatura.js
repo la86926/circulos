@@ -122,12 +122,6 @@ function fingering(notes,modeName){
   return out;
 }
 
-const MODE_HINT={
-  mid:'Mitad del mástil: la melodía va en las cuerdas 1.ª, 2.ª y 3.ª, entre los trastes 3 y 12. Suena a la altura real de la melodía.',
-  low:'Cerca de la cejuela: trastes bajos, sin cuerdas al aire. Suena una octava más grave, como la guitarra normal.',
-  open:'Con cuerdas al aire: trastes bajos usando también cuerdas al aire. Suena una octava más grave, como la guitarra normal.'
-};
-
 /* ───────── Dibujo de la tablatura ───────── */
 const LATIN={C:'DO',D:'RE',E:'MI',F:'FA',G:'SOL',A:'LA',B:'SI'};
 const latin=()=>store.get('circulos-notation','english')==='latin';
@@ -157,7 +151,6 @@ function render(){
   // eventos en orden con su digitación
   events=[];song.measures.forEach((m,mi)=>m.notes.forEach(n=>events.push({...n,mi,dur:n.dur||L})));
   const notes=events.filter(e=>!e.rest),pos=fingering(notes,mode);
-  $('tabModeHint').textContent=MODE_HINT[mode]||'';
   notes.forEach((n,i)=>{n.pos=pos[i];});
   // ancho natural de cada nota y de cada compás
   const sheet=$('tabSheet'),W=Math.max(300,sheet.clientWidth);
