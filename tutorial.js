@@ -230,8 +230,8 @@ const STEPS = {
       variant() {
         const signed = !!$('#favAccount .fav-user');
         return signed
-          ? { text: 'Estás conectado. Escribe este mismo nick en otro celular o computadora y verás tus acordes allí. «Salir» los deja solo en este dispositivo.', at: '#favAccount .fav-user', gesture: 'tap' }
-          : { text: 'Escribe un nick (letras y números, sin contraseña) y toca Entrar. En otro celular o computadora escribe el mismo nick y aparecerán tus acordes.', at: '#favNick', gesture: 'tap', hop: '#favAccount button[type="submit"]', hopY: '-4px' };
+          ? { text: 'Estás conectado. Escribe este mismo nick en otro celular o computadora y verás tus acordes allí. Con «Cambiar» eliges otro nick sin perder nada; «Salir» los deja solo en este dispositivo.', at: '#favAccount [data-rename]', gesture: 'tap', hop: '#favAccount [data-rename]', hopY: '-4px' }
+          : { text: 'Escribe un nick (letras y números, sin contraseña) y toca «Entrar o crear»: si es nuevo se crea y si ya lo tienes, entras. En otro celular o computadora escribe el mismo nick y aparecerán tus acordes.', at: '#favNick', gesture: 'tap', hop: '#favAccount button[type="submit"]', hopY: '-4px' };
       } },
 
     { title: 'Guitarra o piano',

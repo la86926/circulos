@@ -259,5 +259,16 @@ html[data-theme="dark"] .act-fav.is-on svg{fill:#7fb1e8;stroke:#7fb1e8}
 .fav-link{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:6px}
 .fav-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 .fav-tabs{max-width:380px;margin:0 0 16px}
+.fav-user .fav-link+.fav-link{margin-left:-4px}
+.fav-link-small{margin-top:2px;padding:4px 2px;font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.nick-sheet{z-index:96}
+.nick-sheet .app-sheet-card{width:min(440px,calc(100% - 16px))}
+.nick-form{display:grid;gap:6px}
+.nick-form label{margin:6px 2px 0;color:var(--text);font-size:13px;font-weight:760}
+.nick-form input{height:46px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:16px;outline:0}
+.nick-form input:focus{border-color:#8bb7e6;box-shadow:0 0 0 3px rgba(139,183,230,.3)}
+.fav-hint{margin:4px 4px 0;color:var(--muted);font-size:12px;line-height:1.45}
+.nick-save{height:48px;margin-top:6px;border:0;border-radius:999px;background:var(--accent);color:var(--contrast);font:inherit;font-size:15px;font-weight:780;cursor:pointer}
+.nick-save:disabled{opacity:.6}
 .fav-count{margin-left:3px;font-weight:700;opacity:.65}
 @media(max-width:700px){.fav-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
