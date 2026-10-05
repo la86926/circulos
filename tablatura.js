@@ -10,7 +10,7 @@ if(!pdfjsLib||!E||!A)return;
 pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.js';
 const toast=m=>window.CirculosShell?.toast(m);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
-const prefs={tempo:100,chords:store.get('tab-chords','1')==='1',mode:store.get('tab-mode','mid'),inst:store.get('tab-inst','guitar'),kb:store.get('tab-kb','1')==='1',verse:+store.get('tab-verse',0)};
+const prefs={tempo:100,chords:store.get('tab-chords','1')==='1',mode:store.get('tab-mode','mid'),inst:store.get('tab-inst','guitar'),kb:true,verse:+store.get('tab-verse',0)};
 
 /* ───────── Guardado en el dispositivo (para no volver a leer el PDF cada vez) ───────── */
 const DB={
@@ -149,7 +149,7 @@ const KEY_EN=['C','G','D','A','E','B','F♯','C♯'],KEY_EN_F=['C','F','B♭','E
 function keyName(f){const L=latin();if(f>=0)return(L?KEY_NAMES:KEY_EN)[f]||'';return(L?KEY_FLATS:KEY_EN_F)[-f]||'';}
 
 function openSong(i){
-  song=book.songs[i];stop();
+  song=book.songs[i];stop();$('tabKb').checked=true;
   $('tabListPanel').hidden=true;$('tabSong').hidden=false;
   $('tabSongNum').textContent=song.number!=null?`Canción ${song.number}`:'';
   $('tabSongTitle').textContent=song.title;
@@ -259,6 +259,7 @@ function render(){
 function syncInst(){const v=instNow(),piano=v==='piano';$('tabModeWrap').hidden=piano;$('tabKbWrap').hidden=!piano;
   document.querySelectorAll('.tab-inst [data-inst]').forEach(b=>{const on=b.dataset.inst===v;b.classList.toggle('is-on',on);b.setAttribute('aria-checked',on);});}
 document.querySelector('.tab-inst').addEventListener('click',e=>{const b=e.target.closest('[data-inst]');if(!b||b.dataset.inst===instNow())return;
+  if(b.dataset.inst==='piano')$('tabKb').checked=true;
   $('tabInst').value=b.dataset.inst;$('tabInst').dispatchEvent(new Event('change'));});
 ['tabVerse','tabChords','tabMode','tabInst'].forEach(id=>$(id).addEventListener('change',()=>{
   prefs.verse=+$('tabVerse').value;store.set('tab-verse',prefs.verse);store.set('tab-chords',$('tabChords').checked?'1':'0');store.set('tab-mode',$('tabMode').value);store.set('tab-inst',instNow());
@@ -267,7 +268,7 @@ document.querySelector('.tab-inst').addEventListener('click',e=>{const b=e.targe
 $('tabChords').checked=prefs.chords;$('tabMode').value=MODES[prefs.mode]?prefs.mode:'mid';
 $('tabInst').value=['guitar','uke','piano'].includes(prefs.inst)?prefs.inst:'guitar';syncInst();
 $('tabKb').checked=prefs.kb;
-$('tabKb').addEventListener('change',()=>{store.set('tab-kb',$('tabKb').checked?'1':'0');KB.refresh();});
+$('tabKb').addEventListener('change',()=>KB.refresh());
 let rz=0,lastW=0;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{     // en el celular la barra de direcciones cambia el alto: eso no redibuja
   const w=$('tabSheet').clientWidth;if(!$('tabSong').hidden&&w&&w!==lastW){lastW=w;render();}},200);});
 document.addEventListener('circulos:notation',()=>{if(song)render();});
@@ -292,9 +293,11 @@ const KB=(()=>{
     return{w,x:(innerWidth-w)/2,y:headerBottom()+8};}
   function place(){
     if(!st)st=defaults();
-    st.w=clampW(st.w);
-    st.x=Math.max(60-st.w,Math.min(innerWidth-60,st.x));st.y=Math.max(4,Math.min(innerHeight-44,st.y));
-    el.style.width=st.w+'px';el.style.transform=`translate3d(${st.x}px,${st.y}px,0)`;
+    st.w=clampW(st.w);el.style.width=st.w+'px';
+    // siempre entero dentro de la pantalla (si es más ancho que la pantalla, al menos sin huecos a los lados)
+    const h=el.offsetHeight||120,top=headerBottom()+4;
+    st.x=st.w<=innerWidth-8?Math.max(4,Math.min(innerWidth-st.w-4,st.x)):Math.min(4,Math.max(innerWidth-st.w-4,st.x));
+    st.y=Math.max(top,Math.min(innerHeight-h-4,st.y));el.style.transform=`translate3d(${st.x}px,${st.y}px,0)`;
   }
   let raf=0;const placeSoon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;place();});};
   const save=()=>store.set('tab-kb-pos2',JSON.stringify({x:Math.round(st.x),y:Math.round(st.y),w:Math.round(st.w)}));
@@ -366,7 +369,7 @@ const KB=(()=>{
     const w=clampW(st.w*Math.exp(-e.deltaY*0.01)),r=w/st.w;
     st.x=e.clientX-(e.clientX-st.x)*r;st.y=e.clientY-(e.clientY-st.y)*r;st.w=w;placeSoon();clearTimeout(el._t);el._t=setTimeout(save,300);
   },{passive:false});
-  el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;store.set('tab-kb','0');refresh();});
+  el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;refresh();});   // se quita solo en esta canción
   addEventListener('resize',()=>{if(!el.hidden)placeSoon();});
   return{setSong,refresh,light};
 })();
