@@ -120,5 +120,12 @@ function iosHelp(){
 }
 if(isIOS&&!standalone)addEventListener('DOMContentLoaded',()=>setTimeout(()=>addMenuItem({id:'installItem',icon:ICON_INSTALL,title:'Instalar app',subtitle:'Úsala desde tu pantalla de inicio.',onClick:iosHelp}),0));
 
+/* El logo de la barra de arriba lleva al inicio (en el inicio, sube al principio de la página) */
+(()=>{const bw=document.querySelector('.app-header .brand-wrap');if(!bw||bw.tagName==='A')return;
+  const a=document.createElement('a');a.href='index.html';a.className=bw.className;a.setAttribute('aria-label','Ir al inicio');
+  while(bw.firstChild)a.appendChild(bw.firstChild);bw.replaceWith(a);
+  const home=/(^|\/)(index\.html)?$/.test(location.pathname);
+  a.addEventListener('click',e=>{if(home){e.preventDefault();scrollTo({top:0,behavior:'smooth'});}});
+})();
 window.CirculosShell={toast,addMenuItem,toggleMenu,paintTheme};
 })();
