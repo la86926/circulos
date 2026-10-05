@@ -282,11 +282,14 @@ const KB=(()=>{
   document.body.appendChild(el);
   const svg=el.querySelector('.kb-svg'),WW=10,WH=42,BW=6.2,BH=26;
   let lo=60,hi=72,flats=false,has=false,nWhite=8,st=null,lit=null,drawn='';
-  try{st=JSON.parse(store.get('tab-kb-pos','null'));}catch(e){st=null;}
-  const minW=()=>Math.min(200,innerWidth-16),maxW=()=>Math.max(innerWidth*1.6,1200);
+  try{st=JSON.parse(store.get('tab-kb-pos2','null'));}catch(e){st=null;}
+  const minW=()=>Math.min(140,innerWidth-16),maxW=()=>Math.max(innerWidth*1.6,1200);
   const clampW=w=>Math.max(minW(),Math.min(maxW(),w));
   function headerBottom(){const h=document.querySelector('.app-header');return h?h.getBoundingClientRect().bottom:60;}
-  function defaults(){const aspect=nWhite*WW/WH,w=Math.min(innerWidth-16,920,Math.max(300,(innerHeight*.3-24)*aspect));return{w,x:(innerWidth-w)/2,y:headerBottom()+8};}
+  function defaults(){
+    const aspect=nWhite*WW/WH,phone=innerWidth<700;
+    const w=phone?Math.max(170,innerWidth*.5):Math.min(innerWidth-16,920,Math.max(300,(innerHeight*.3-24)*aspect));   // celular: la mitad de la pantalla
+    return{w,x:(innerWidth-w)/2,y:headerBottom()+8};}
   function place(){
     if(!st)st=defaults();
     st.w=clampW(st.w);
@@ -294,7 +297,7 @@ const KB=(()=>{
     el.style.width=st.w+'px';el.style.transform=`translate3d(${st.x}px,${st.y}px,0)`;
   }
   let raf=0;const placeSoon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;place();});};
-  const save=()=>store.set('tab-kb-pos',JSON.stringify({x:Math.round(st.x),y:Math.round(st.y),w:Math.round(st.w)}));
+  const save=()=>store.set('tab-kb-pos2',JSON.stringify({x:Math.round(st.x),y:Math.round(st.y),w:Math.round(st.w)}));
   function dots(cx,y0,d,step){let h='';for(let k=1;k<=Math.abs(d);k++)h+=`<circle class="kb-oct" cx="${cx}" cy="${d>0?y0-(k-1)*step:y0+(k-1)*step}" r=".85"/>`;return h;}
   function draw(){
     const whites=[];for(let m=lo;m<=hi;m++)if(!isBlack(m))whites.push(m);
@@ -305,7 +308,7 @@ const KB=(()=>{
       h+=`<g class="kb-key kb-w" data-m="${m}"><rect x="${i*WW+.3}" y=".3" width="${WW-.6}" height="${WH-.6}" rx="1.3"/><text x="${cx}" y="${WH-6.2}">${esc(noteName(m,flats))}</text>${d>0?dots(cx,WH-12.6,d,2.4):dots(cx,WH-3.1,d,2.4)}</g>`;});
     for(let m=lo;m<=hi;m++)if(isBlack(m)&&wx[m-1]!=null){const x=wx[m-1]+WW-BW/2,cx=x+BW/2,d=octDots(m);
       h+=`<g class="kb-key kb-b" data-m="${m}"><rect x="${x}" y="0" width="${BW}" height="${BH}" rx="1"/><text x="${cx}" y="${BH-4.4}">${esc(noteName(m,flats))}</text>${d>0?dots(cx,BH-9.4,d,2):dots(cx,BH-2,d,2)}</g>`;}
-    svg.innerHTML=h;lit=null;barKeys=[];
+    svg.innerHTML=h;lit=null;
   }
   function refresh(){
     const show=has&&$('tabKb').checked&&!$('tabSong').hidden&&instNow()==='piano';
@@ -317,12 +320,6 @@ const KB=(()=>{
     const key=a+'|'+z+'|'+fl+'|'+latin();
     if(key!==drawn){lo=a;hi=z;flats=fl;draw();drawn=key;}
     has=true;refresh();
-  }
-  let barKeys=[];
-  function bar(midis){                                             // todas las teclas del compás que suena
-    barKeys.forEach(k=>k.classList.remove('in-bar'));barKeys=[];
-    if(!midis)return;
-    new Set(midis).forEach(m=>{const k=svg.querySelector(`.kb-key[data-m="${m}"]`);if(k){k.classList.add('in-bar');barKeys.push(k);}});
   }
   function light(m){
     if(lit)lit.classList.remove('is-on');lit=null;
@@ -371,14 +368,14 @@ const KB=(()=>{
   },{passive:false});
   el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;store.set('tab-kb','0');refresh();});
   addEventListener('resize',()=>{if(!el.hidden)placeSoon();});
-  return{setSong,refresh,light,bar};
+  return{setSong,refresh,light};
 })();
 
 /* ───────── Escuchar ───────── */
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
 tempo.addEventListener('input',()=>{$('tabTempoVal').textContent=tempo.value;});
-let timer=0,playing=false,soundReady=false,nowEl=null,curBar=-1;
-function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);KB.bar(null);curBar=-1;if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
+let timer=0,playing=false,soundReady=false,nowEl=null;
+function stop(){playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}const b=$('tabPlay');b.classList.remove('is-on');b.querySelector('span').textContent='Escuchar';}
 function play(from){
   if(playing&&from==null){stop();return;}
   if(playing)stop();
@@ -391,7 +388,6 @@ function play(from){
     if(i>=events.length){stop();return;}
     const e=events[i],ms=e.dur*60000/(+tempo.value);
     if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}
-    if(e.mi!==curBar){curBar=e.mi;KB.bar(events.filter(x=>x.mi===e.mi&&!x.rest&&x.pos).map(x=>x.pos.p));}
     KB.light(!e.rest&&e.pos?e.pos.p:null);
     if(!e.rest&&e.pos){
       if(!e.tied)window.CirculosPiano.play(e.pos.p,{velocity:.8});

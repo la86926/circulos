@@ -96,13 +96,10 @@ html[data-theme=dark] .kb-float{border-color:#41679c;background:#18212f;box-shad
 .kb-b rect{fill:#1c2431}
 .kb-b text{fill:#fff;font-size:2.5px;font-weight:800;text-anchor:middle;opacity:0}
 .kb-b .kb-oct{fill:#fff;opacity:0}
-.kb-key.in-bar rect{fill:#fbe5ef;stroke:#f1cadb;stroke-width:.35}
-.kb-key.in-bar text,.kb-key.in-bar .kb-oct{fill:#9a5578;opacity:1}
 .kb-key.is-on rect{fill:#f6bcd8;stroke:#eaa3c5;stroke-width:.35}
 .kb-key.is-on text,.kb-key.is-on .kb-oct{fill:#8f3462;opacity:1}
 html[data-theme=dark] .kb-w rect{fill:#e9eef6;stroke:#8d9ab0}
 html[data-theme=dark] .kb-b rect{fill:#0c1018}
-html[data-theme=dark] .kb-key.in-bar rect{fill:#fbe5ef;stroke:#f1cadb}
 html[data-theme=dark] .kb-key.is-on rect{fill:#f6bcd8;stroke:#eaa3c5}
 .kb-resize{position:absolute;right:4px;bottom:4px;width:12px;height:12px;cursor:nwse-resize;opacity:.55;background:linear-gradient(135deg,transparent 45%,var(--muted) 45%,var(--muted) 55%,transparent 55%,transparent 70%,var(--muted) 70%,var(--muted) 80%,transparent 80%)}
 @media(pointer:coarse){.kb-resize{display:none}}
