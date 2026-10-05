@@ -1,1 +1,85 @@
-
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6f9">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="description" content="Círculos armónicos, escalas y posiciones para piano y guitarra.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Círculos Music">
+<meta property="og:description" content="Escalas, 7 acordes diatónicos y posiciones para piano y guitarra.">
+<meta property="og:image" content="https://la86926.github.io/Circulos-music/og-image.png?v=4">
+<meta name="twitter:card" content="summary_large_image">
+<title>Círculos Music</title>
+<!-- Sonido de piano: Salamander Grand Piano V3, de Alexander Holm (CC BY 3.0). Detalles en sounds/piano/CREDITS.txt -->
+<link rel="icon" href="logo.svg?v=3" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png?v=3" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="shell.css?v=3">
+<link rel="stylesheet" href="chords-library.css?v=15">
+<link rel="stylesheet" href="circulos.css?v=1">
+<link rel="stylesheet" href="polish.css?v=16">
+<link rel="stylesheet" href="tutorial.css?v=4">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner appearance-header">
+    <button class="icon-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-controls="sideMenu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7.5h16M4 12h11M4 16.5h16"/></svg></button>
+    <div class="brand-wrap"><img data-logo src="logo.svg?v=3" alt="" class="brand-icon" width="34" height="34"><h2 class="brand">Círculos<span class="brand-sub"> Music</span></h2></div>
+    <div class="theme-switch" role="group" aria-label="Apariencia">
+      <button class="theme-choice" data-theme-choice="light" type="button" aria-label="Modo claro" title="Claro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg><span>Claro</span></button>
+      <button class="theme-choice" data-theme-choice="dark" type="button" aria-label="Modo oscuro" title="Oscuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg><span>Oscuro</span></button>
+      <button class="theme-choice" data-theme-choice="system" type="button" aria-label="Usar apariencia del sistema" title="Sistema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Sistema</span></button>
+    </div>
+  </div>
+</header>
+<div class="menu-backdrop" id="menuBackdrop" aria-hidden="true"></div>
+<aside class="side-menu" id="sideMenu" aria-hidden="true" aria-label="Elegir herramienta">
+  <div class="side-menu-head">
+    <div class="side-menu-brand"><img data-logo src="logo.svg?v=3" alt="" width="40" height="40"><div><strong>Círculos Music</strong></div></div>
+    <button class="icon-btn" id="menuCloseBtn" type="button" aria-label="Cerrar menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <nav class="app-picker" aria-label="Herramientas">
+    <a class="app-choice active" href="index.html" aria-current="page"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke-opacity=".35"/><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="4" r="1.7"/><circle cx="18.9" cy="8" r="1.7"/><circle cx="18.9" cy="16" r="1.7"/><circle cx="12" cy="20" r="1.7"/><circle cx="5.1" cy="16" r="1.7"/><circle cx="5.1" cy="8" r="1.7"/></svg></span><strong>Círculos</strong><small>Tonalidades, sus 7 acordes y posiciones.</small></a>
+    <a class="app-choice" href="acordes.html"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M10.67 4v16M15.33 4v16M20 4v16" stroke-opacity=".5"/><path d="M6 4h14" stroke-width="2.4"/><path d="M6 9h14M6 14h14M6 19h14" stroke-opacity=".3"/><circle class="dot" cx="10.67" cy="11.5" r="2"/><circle class="dot" cx="15.33" cy="16.5" r="2"/><circle class="dot" cx="20" cy="6.5" r="2"/></svg></span><strong>Acordes</strong><small>Biblioteca de acordes de guitarra y piano.</small></a>
+  </nav>
+  <gift-card-widget></gift-card-widget>
+</aside>
+<main class="container app-view" id="circlesView">
+<section class="hero" id="inicio"><div><h1>Círculos de acordes</h1></div></section>
+<section class="toolbar"><div class="control-card"><span class="label">Nomenclatura</span><div class="segmented seg2"><button class="seg-btn active" data-nomenclature="english" type="button">Inglés</button><button class="seg-btn" data-nomenclature="latin" type="button">Latina</button></div></div></section>
+<section class="panel" id="selector">
+  <div class="key-scroller" id="toneSelector"></div>
+  <div class="panel-head"><div><h3 class="panel-title">Tonalidad principal</h3></div><label class="minimal-scale-control"><select class="minimal-scale-select" id="minimalScaleSelect" aria-label="Tipo de escala"><option value="major">Mayor</option><option value="minor">Menor natural</option></select><span class="minimal-scale-arrow" aria-hidden="true">⌄</span></label></div>
+</section>
+<section class="panel harmony-wheel-panel" id="circuloArmonico"><div class="harmony-wheel-wrap"><div class="harmony-wheel-stage" id="harmonyWheel"></div><aside class="harmony-wheel-info"><div class="harmony-wheel-legend"><div class="harmony-wheel-legend-item"><span class="harmony-wheel-dot major"></span><span>Mayor</span></div><div class="harmony-wheel-legend-item"><span class="harmony-wheel-dot minor"></span><span>Menor</span></div><div class="harmony-wheel-legend-item"><span class="harmony-wheel-dot diminished"></span><span>Disminuido</span></div></div></aside></div></section>
+<section class="panel" id="instrumento">
+  <div class="chord-head"><strong id="circleChordTitle"></strong><div class="chord-actions" id="chordActions"></div></div>
+  <div class="instrument-tabs"><div class="segmented seg2"><button class="seg-btn active" data-instrument="guitar" type="button">Guitarra</button><button class="seg-btn" data-instrument="piano" type="button">Piano</button></div></div>
+  <div class="instrument-body" id="guitarPanel"><div class="chord-position-grid" id="circleChordPositions" aria-live="polite"></div></div>
+  <div class="instrument-body hidden" id="pianoPanel">
+    <div class="visual-top"><div class="inversion-wrap"><div class="segmented seg3"><button class="seg-btn active" data-inversion="0" type="button">Fundamental</button><button class="seg-btn" data-inversion="1" type="button">1.ª inversión</button><button class="seg-btn" data-inversion="2" type="button">2.ª inversión</button></div></div><div id="pianoActions" class="piano-actions"></div></div>
+    <div class="piano-scroll"><div class="piano" id="pianoKeyboard"></div></div>
+    <p class="voicing-note-line">Notas: <strong id="pianoVoicingText"></strong></p>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script src="shell.js?v=3"></script>
+<script src="circulos.js?v=2" defer></script>
+<script src="gift-ui.js?v=7" defer></script>
+<script src="chords-library.js?v=25" defer></script>
+<script src="circle-chords.js?v=3" defer></script>
+<script src="piano-sound.js?v=4" defer></script>
+<script src="piano-voicing.js?v=4" defer></script>
+<script src="share.js?v=2" defer></script>
+<script src="favoritos.js?v=7" type="module"></script>
+<script src="tutorial.js?v=18" defer></script>
+<script src="leave-guard.js?v=4" defer></script>
+</body>
+</html>

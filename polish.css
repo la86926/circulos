@@ -1,0 +1,263 @@
+/* Círculos Music · pulido visual
+   Se carga al final en index.html y acordes.html, así que estas reglas tienen la última palabra. */
+
+/* Cabecera: el nombre ya no se parte en dos líneas en pantallas angostas */
+.appearance-header{grid-template-columns:auto minmax(0,1fr) auto}
+.brand-wrap{min-width:0}
+.brand{white-space:nowrap}
+.brand-icon,.side-menu-brand img{border-radius:0;object-fit:contain}
+@media(max-width:430px){.brand{font-size:17px}.brand-icon{width:30px;height:30px}.brand-wrap{gap:8px}}
+@media(max-width:370px){.brand-sub{display:none}}
+
+/* Tarjetas del menú lateral, ahora con icono */
+.app-choice{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:14px;align-items:center}
+.app-choice>strong,.app-choice>small{grid-column:2}
+.app-choice small{margin-top:3px}
+.app-choice-icon{grid-column:1;grid-row:1 / span 2;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--surface2);color:var(--text);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.app-choice-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.app-choice-icon .dot{fill:currentColor;stroke:none}
+.app-choice.active .app-choice-icon{background:color-mix(in srgb,var(--contrast) 14%,transparent);color:var(--contrast)}
+.app-choice:hover .app-choice-icon{transform:scale(1.08) rotate(-4deg)}
+
+/* Rueda armónica: "Superdominante" ya no toca el borde del círculo */
+.harmony-wheel-node:not(.harmony-wheel-center-node) .harmony-wheel-function{font-size:16px}
+
+/* Respuesta táctil con rebote suave en los botones principales */
+.tone-btn,.seg-btn,.icon-btn,.theme-choice,.chord-catalog-card,[data-root]{transition:transform .3s cubic-bezier(.34,1.56,.64,1),background-color .2s,color .2s,border-color .2s,box-shadow .2s}
+.tone-btn:active,.seg-btn:active,.icon-btn:active,.chord-catalog-card:active,[data-root]:active{transform:scale(.94)}
+@media(hover:hover){.tone-btn:not(.active):hover{transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){.tone-btn,.seg-btn,.icon-btn,.theme-choice,.chord-catalog-card,[data-root],.app-choice-icon{transition:none}.app-choice:hover .app-choice-icon{transform:none}}
+
+/* Rueda: la leyenda de colores es lo único que queda junto al círculo */
+.harmony-wheel-info{padding:14px 18px}
+.harmony-wheel-legend{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:0;min-width:0}
+
+/* Posiciones de guitarra en Círculos (mismas tarjetas que la biblioteca de Acordes) */
+#circleChordPositions .chord-position-card{animation:circleCardIn .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 45ms)}
+@keyframes circleCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){#circleChordPositions .chord-position-card{animation:none}}
+@media(min-width:851px){.harmony-wheel-legend{flex-direction:column}}
+
+/* "Ver tutorial" en el menú: una sola línea, centrada junto a su icono */
+.tuto-menu-item .app-choice-icon{grid-row:1}
+.tuto-menu-item>strong{align-self:center}
+
+/* Acordes: sin el filtro de posición quedan búsqueda por nota y familia */
+.chordlib-filter-row{grid-template-columns:minmax(0,1fr) 240px}
+@media(max-width:900px){.chordlib-filter-row{grid-template-columns:1fr}.chord-filter-block:first-child{grid-column:auto}}
+
+/* Tarjetas de posición: solo el traste como título */
+.chord-position-card .position-card-head{min-height:0}
+.chord-position-card .position-card-head strong{margin-top:0;font-size:15px;letter-spacing:-.01em}
+.chord-detail-meta{grid-template-columns:minmax(0,1fr)}
+.chord-detail-meta>div{max-width:360px}
+
+/* ───────── Piano en tonos pastel ─────────
+   Solo brillan las teclas de la posición: azul intenso = tónica, azul hielo = las otras notas del acorde. */
+:root{--pk-note:#dcebfb;--pk-note-edge:#8bb7e6;--pk-note-text:#2f64a8;--pk-root:#5b8fdb;--pk-root-edge:#3a6fc0;--pk-root-text:#ffffff}
+html body #instrumento #pianoKeyboard .white-key{background:#fdfdff!important;color:#9aa3b2!important;border-color:#d8dee8!important;box-shadow:none!important;filter:none!important;transition:background-color .35s ease,color .35s ease,box-shadow .35s ease}
+html body #instrumento #pianoKeyboard .black-key{background:#1b1f27!important;color:#8e97a6!important;box-shadow:none!important;filter:none!important;transition:background-color .35s ease,color .35s ease}
+html body #instrumento #pianoKeyboard .white-key.pk-on{background:var(--pk-note)!important;color:var(--pk-note-text)!important;box-shadow:inset 0 -12px 0 var(--pk-note-edge)!important}
+html body #instrumento #pianoKeyboard .white-key.pk-root{background:var(--pk-root)!important;color:var(--pk-root-text)!important;box-shadow:inset 0 -12px 0 var(--pk-root-edge)!important}
+html body #instrumento #pianoKeyboard .black-key.pk-on{background:var(--pk-note-edge)!important;color:#12345f!important}
+html body #instrumento #pianoKeyboard .black-key.pk-root{background:var(--pk-root)!important;color:#fff!important}
+html body #instrumento #pianoKeyboard .white-key.pk-wait{background:#fdfdff!important;color:#9aa3b2!important;box-shadow:none!important}
+html body #instrumento #pianoKeyboard .black-key.pk-wait{background:#1b1f27!important;color:#8e97a6!important}
+html body #instrumento #pianoKeyboard .pk-leave{animation:pkLeave .5s ease both}
+html body #instrumento #pianoKeyboard .pk-pop{animation:pkPop .55s cubic-bezier(.34,1.56,.64,1) both;animation-delay:var(--pk-d,0ms)}
+@keyframes pkPop{0%{transform:translateY(0)}35%{transform:translateY(5px)}100%{transform:translateY(0)}}
+@keyframes pkLeave{0%{box-shadow:inset 0 -12px 0 var(--pk-note-edge),0 0 0 0 rgba(139,183,230,.0)}40%{box-shadow:inset 0 -4px 0 var(--pk-note-edge),0 0 0 6px rgba(139,183,230,.35)}100%{box-shadow:none}}
+.pk-fly{position:absolute;left:0;top:0;z-index:8;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:820;letter-spacing:-.01em;pointer-events:none;background:var(--pk-note);color:var(--pk-note-text);box-shadow:0 0 0 3px var(--pk-note-edge),0 10px 24px rgba(40,60,50,.22)}
+.pk-fly.is-root{background:var(--pk-root);color:var(--pk-root-text);box-shadow:0 0 0 3px var(--pk-root-edge),0 10px 24px rgba(40,50,110,.24)}
+.pk-ring{position:absolute;z-index:7;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:3px solid var(--pk-note-edge);pointer-events:none;animation:pkRing .65s ease-out both}
+.pk-ring.is-root{border-color:var(--pk-root-edge)}
+@keyframes pkRing{from{transform:scale(.5);opacity:1}to{transform:scale(1.9);opacity:0}}
+@media(prefers-reduced-motion:reduce){html body #instrumento #pianoKeyboard .pk-pop,html body #instrumento #pianoKeyboard .pk-leave{animation:none}}
+
+/* Tonalidad: el selector de escala va junto al título, no en el extremo opuesto */
+html body #selector>.panel-head{display:flex!important;justify-content:flex-start!important;align-items:center!important;flex-wrap:wrap;gap:10px 14px!important}
+html body #selector .minimal-scale-control{min-width:0}
+html body #selector .minimal-scale-select{height:36px;padding:0 34px 0 15px;border-radius:999px}
+/* En el celular las teclas son más angostas para que la posición completa quepa en pantalla */
+@media(max-width:560px){:root{--key-w:44px;--key-black-w:28px}html body #instrumento #pianoKeyboard .white-key{font-size:10px}}
+
+/* ───────── Piano: no se arrastra con el dedo; se mueve con el mapa de arriba ───────── */
+html body #instrumento #pianoPanel .piano-scroll{overflow-x:hidden!important;touch-action:pan-y!important;cursor:default!important}
+html body #instrumento #pianoKeyboard,html body #instrumento #pianoKeyboard>*{touch-action:pan-y!important}
+html body #instrumento #pianoKeyboard .white-key.pk-echo{box-shadow:none!important}
+.pk-nav{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;align-items:center;gap:8px;margin:4px 0 14px}
+.pk-nav[hidden]{display:none}
+.pk-nav-btn{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--text);display:grid;place-items:center;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background-color .2s}
+.pk-nav-btn:active{transform:scale(.88)}
+.pk-nav-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pk-nav-track{position:relative;height:40px;border-radius:12px;overflow:hidden;cursor:grab;touch-action:none;background:#fdfdff;border:1px solid var(--line)}
+.pk-nav.is-dragging .pk-nav-track{cursor:grabbing}
+.pk-nav-keys{position:absolute;inset:0;display:flex}
+.pk-mini-w{flex:1 1 0;border-right:1px solid #e2e7ef;background:#fdfdff}
+.pk-mini-w:last-child{border-right:0}
+.pk-mini-b{position:absolute;top:0;height:58%;background:#262b34;border-radius:0 0 2px 2px}
+.pk-mini-w.is-on{background:var(--pk-note)}.pk-mini-w.is-root{background:var(--pk-root)}
+.pk-mini-b.is-on{background:var(--pk-note-edge)}.pk-mini-b.is-root{background:var(--pk-root-edge)}
+.pk-nav-window{position:absolute;top:2px;bottom:2px;border:2.5px solid var(--text);border-radius:9px;box-shadow:0 0 0 999px rgba(23,24,23,.22);pointer-events:none;transition:box-shadow .2s}
+.pk-nav.is-dragging .pk-nav-window{box-shadow:0 0 0 999px rgba(23,24,23,.3),0 0 0 4px rgba(180,166,255,.45) inset}
+.pk-nav-grip{position:absolute;left:50%;bottom:-1px;width:22px;height:5px;margin-left:-11px;border-radius:4px 4px 0 0;background:var(--text)}
+html[data-theme="dark"] .pk-nav-window{border-color:#f5f5f2}
+html[data-theme="dark"] .pk-nav-grip{background:#f5f5f2}
+
+/* Botón "Todo el teclado" */
+#pianoPanel .visual-top{align-items:center}
+.pk-all{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 16px 0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface2);color:var(--text);font:inherit;font-size:12px;font-weight:760;cursor:pointer;transition:background-color .25s,border-color .25s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.pk-all:active{transform:scale(.94)}
+.pk-all-dots{display:inline-flex;gap:3px}
+.pk-all-dots i{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background-color .3s,transform .3s cubic-bezier(.34,1.56,.64,1)}
+.pk-all[aria-pressed="true"]{background:var(--pk-note);border-color:var(--pk-note-edge);color:var(--pk-note-text)}
+.pk-all[aria-pressed="true"] .pk-all-dots i{background:var(--pk-note-edge)}
+.pk-all[aria-pressed="true"] .pk-all-dots i:first-child{background:var(--pk-root)}
+.pk-all[aria-pressed="true"] .pk-all-dots i:nth-child(2){transform:translateY(-3px)}
+html[data-theme="dark"] .pk-all[aria-pressed="true"]{color:#2f64a8}
+
+/* ───────── Acordes: "Familia" debajo de "Nota", con el mismo selector tipo píldora de Círculos ───────── */
+html body .chordlib-filter-row{grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+html body .chordlib-filter-row .chord-filter-block:first-child{grid-column:auto!important}
+html body .chordlib-filter-row label.chord-filter-block{display:flex;flex-direction:column;align-items:flex-start}
+html body #chordFamilyFilter{width:auto;max-width:100%;min-width:0;height:36px;min-height:0;padding:0 36px 0 15px;border:1px solid var(--line);border-radius:999px;background-color:var(--surface2);color:var(--text);font-size:12px;font-weight:760;appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6e6a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:15px}
+html[data-theme="dark"] #chordFamilyFilter{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a4a7a2' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E")}
+
+/* ───────── Círculo armónico en pastel (celeste = mayor, lila = menor, melón = disminuido) ───────── */
+html:root{--wheel-major-fill:#d6ecff;--wheel-major-stroke:#8cc4f4;--wheel-major-ink:#3f86c6;--wheel-minor-fill:#ebe2ff;--wheel-minor-stroke:#b398f6;--wheel-minor-ink:#7553d6;--wheel-dim-fill:#ffe0d8;--wheel-dim-stroke:#f4aa9c;--wheel-dim-ink:#c8675a}
+html[data-theme="dark"]:root{--wheel-major-fill:#1d3247;--wheel-major-stroke:#9dcfff;--wheel-major-ink:#9dcfff;--wheel-minor-fill:#2c2550;--wheel-minor-stroke:#c4b0ff;--wheel-minor-ink:#c4b0ff;--wheel-dim-fill:#452a2b;--wheel-dim-stroke:#ffbcae;--wheel-dim-ink:#ffbcae}
+.harmony-wheel-node.major .harmony-wheel-degree{fill:var(--wheel-major-ink)}
+.harmony-wheel-node.minor .harmony-wheel-degree{fill:var(--wheel-minor-ink)}
+.harmony-wheel-node.diminished .harmony-wheel-degree{fill:var(--wheel-dim-ink)}
+.harmony-wheel-node .harmony-wheel-node-bg{stroke-width:4;transition:fill .3s ease,stroke .3s ease}
+/* El acorde elegido se rellena con el tono más intenso de su color */
+.harmony-wheel-node.active.major .harmony-wheel-node-bg{fill:var(--wheel-major-stroke);stroke:var(--wheel-major-stroke)}
+.harmony-wheel-node.active.minor .harmony-wheel-node-bg{fill:var(--wheel-minor-stroke);stroke:var(--wheel-minor-stroke)}
+.harmony-wheel-node.active.diminished .harmony-wheel-node-bg{fill:var(--wheel-dim-stroke);stroke:var(--wheel-dim-stroke)}
+.harmony-wheel-node.active .harmony-wheel-node-bg{filter:drop-shadow(0 10px 18px rgba(60,50,120,.22))}
+.harmony-wheel-node.active .harmony-wheel-name,.harmony-wheel-node.active .harmony-wheel-function{fill:#14181a}
+.harmony-wheel-node.active .harmony-wheel-degree,.harmony-wheel-node.active .harmony-wheel-notes{fill:rgba(20,24,26,.72)}
+
+/* ───────── Diagramas de guitarra en azules (Círculos y Acordes): azul hielo para las notas, azul intenso para la tónica R ───────── */
+html body .library-diagram .diagram-dot{fill:#dcebfb;stroke:#8bb7e6;stroke-width:2.5}
+html body .library-diagram .diagram-root{fill:#4f86d6;stroke:#b9d4f4;stroke-width:2.5}
+html body .library-diagram .diagram-dot-text{fill:#ffffff}
+html body .library-diagram .diagram-barre{stroke:#bcd8f5;opacity:1}
+html[data-theme="dark"] body .library-diagram .diagram-dot{fill:#a9cdf3;stroke:#d9e9fb}
+html[data-theme="dark"] body .library-diagram .diagram-root{fill:#5b93e6;stroke:#b3d0f6}
+html[data-theme="dark"] body .library-diagram .diagram-dot-text{fill:#ffffff}
+html[data-theme="dark"] body .library-diagram .diagram-barre{stroke:#7fb1e8}
+
+/* ───────── Neutros fríos: fondos, bordes y textos sin el tinte verdoso del diseño anterior ───────── */
+html:root{--bg:#f4f6f9;--surface:#ffffff;--surface2:#eef1f6;--surface3:#e3e8f0;--text:#151a22;--muted:#667085;--line:#d8dee8;--accent:#151a22;--contrast:#ffffff;--root:#8bb7e6;--root2:#4f86d6;--shadow:0 18px 50px rgba(21,32,52,.08)}
+html[data-theme="dark"]:root{--bg:#0e1116;--surface:#161a21;--surface2:#1e232c;--surface3:#272d38;--text:#eef2f8;--muted:#a3adbd;--line:#2e3542;--accent:#eef2f8;--contrast:#0e1116;--root:#8bb7e6;--root2:#a9c9f0;--shadow:0 20px 60px rgba(0,0,0,.32)}
+
+/* ───────── Aviso breve por encima de todo ───────── */
+.toast{z-index:30000!important;bottom:calc(28px + env(safe-area-inset-bottom,0px))!important;max-width:calc(100% - 32px);text-align:center}
+
+/* ───────── Opciones extra del menú (Favoritos, Instalar, Tutorial) en una línea ───────── */
+.app-extra{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:14px;align-items:center;width:100%;font:inherit}
+.app-extra .app-choice-icon{grid-row:1 / span 2}
+.app-extra>strong{align-self:end}.app-extra>small{grid-column:2}
+.app-extra:not(:has(small))>strong{align-self:center}
+.app-extra:not(:has(small)) .app-choice-icon{grid-row:1}
+
+/* ───────── Acorde elegido en Círculos: nombre + favorito + compartir ───────── */
+#instrumento .chord-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 24px 14px}
+#instrumento .chord-head strong{font-size:22px;letter-spacing:-.035em}
+@media(max-width:560px){#instrumento .chord-head{padding:18px 18px 12px}}
+.chord-actions{display:flex;align-items:center;gap:8px}
+.act-btn{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--text);cursor:pointer;transition:transform .3s cubic-bezier(.34,1.56,.64,1),background-color .2s,border-color .2s,color .2s}
+.act-btn:active{transform:scale(.88)}
+.act-btn:disabled{opacity:.45;cursor:default}
+.act-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.act-fav.is-on{background:#dcebfb;border-color:#8bb7e6;color:#3a6fc0}
+.act-fav.is-on svg{fill:#4f86d6;stroke:#4f86d6}
+html[data-theme="dark"] .act-fav.is-on{background:#1d2c44;border-color:#5b8fdb;color:#9dc4f5}
+html[data-theme="dark"] .act-fav.is-on svg{fill:#7fb1e8;stroke:#7fb1e8}
+.act-fav.pop{animation:favPop .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes favPop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+/* Corazón y compartir siempre a la derecha (a la mano para diestros) */
+.chord-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.detail-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.detail-title-row h2{min-width:0;overflow-wrap:anywhere}
+.chord-position-card .position-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:34px;margin:-2px -2px 2px 0}
+.chord-position-card .position-card-head strong{margin:0;font-size:12px;color:var(--muted);font-weight:780}
+.act-btn.act-sm{width:34px;height:34px}
+.act-btn.act-sm svg{width:16px;height:16px}
+.pos-actions{gap:6px}
+.chord-position-card.is-focus{animation:cardFocus 1.6s ease}
+@keyframes cardFocus{0%,30%{box-shadow:0 0 0 3px #8bb7e6,0 10px 30px rgba(79,134,214,.25)}100%{box-shadow:0 0 0 0 rgba(139,183,230,0)}}
+#pianoPanel .visual-top{justify-content:flex-start}
+#pianoActions{order:9;margin-left:auto}
+.piano-actions .pos-actions{gap:8px}
+.piano-actions .act-btn.act-sm{width:40px;height:40px}
+.piano-actions .act-btn.act-sm svg{width:18px;height:18px}
+/* Variación guardada: subtítulo debajo del nombre */
+.chord-catalog-top small{display:block;margin-top:3px;color:var(--muted);font-size:10px;font-weight:760;letter-spacing:.01em}
+
+/* ───────── Piano de la biblioteca ───────── */
+.results-title{display:flex!important;align-items:center;gap:14px;flex-wrap:wrap}
+.lib-inst{width:auto;min-width:200px}
+.lib-piano{display:block;width:100%;max-width:440px;height:auto;margin:8px auto 4px;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.lib-piano-mini{max-width:158px;margin:9px auto 2px;pointer-events:none}
+.lib-piano rect{cursor:pointer;transition:fill .2s ease}
+.lib-piano-mini rect{cursor:inherit}
+.lp-w{fill:#fdfdff;stroke:#d8dee8;stroke-width:1}
+.lp-b{fill:#1b1f27}
+.lp-w.is-on{fill:var(--pk-note);stroke:var(--pk-note-edge)}
+.lp-w.is-root{fill:var(--pk-root);stroke:var(--pk-root-edge)}
+.lp-b.is-on{fill:var(--pk-note-edge)}
+.lp-b.is-root{fill:var(--pk-root-edge)}
+.lib-piano rect.is-press{fill:#a9c8ef}
+.lib-piano .lp-b.is-press{fill:#5b8fdb}
+.lp-t{font-size:8.5px;font-weight:820;text-anchor:middle;fill:var(--pk-note-text);pointer-events:none}
+.lp-t.is-root{fill:#fff}
+.lp-tb{font-size:6.6px;fill:#0f2c52}.lp-tb.is-root{fill:#fff}
+.piano-card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding:8px 9px;border-radius:12px;background:var(--surface2)}
+.piano-card-foot span{font-size:12px;font-weight:760;letter-spacing:.01em}
+.piano-play{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px 0 10px;border:0;border-radius:999px;background:var(--accent);color:var(--contrast);font:inherit;font-size:12px;font-weight:760;cursor:pointer;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.piano-play:active{transform:scale(.92)}
+.piano-play svg{width:14px;height:14px;fill:currentColor}
+@media(max-width:520px){.results-title{gap:10px}.lib-inst{min-width:0;flex:1 1 180px}}
+/* Marca de favorito en las tarjetas */
+.chord-catalog-card{position:relative}
+.chord-catalog-card.is-fav::after{content:"";position:absolute;top:12px;right:12px;width:16px;height:16px;background:#4f86d6;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.2s-7.4-4.5-9.1-9.2C1.8 7.8 3.9 4.6 7.2 4.6c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.3 0 5.4 3.2 4.3 6.4-1.7 4.7-9.1 9.2-9.1 9.2Z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.2s-7.4-4.5-9.1-9.2C1.8 7.8 3.9 4.6 7.2 4.6c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.3 0 5.4 3.2 4.3 6.4-1.7 4.7-9.1 9.2-9.1 9.2Z'/%3E%3C/svg%3E") center/contain no-repeat}
+@media(prefers-reduced-motion:reduce){.act-fav.pop{animation:none}}
+
+/* ───────── Hojas (Favoritos, Instalar) ───────── */
+.app-sheet{position:fixed;inset:0;z-index:90;display:grid;place-items:end center;visibility:hidden;opacity:0;transition:opacity .2s ease,visibility .2s ease}
+.app-sheet.open{visibility:visible;opacity:1}
+.app-sheet-backdrop{position:absolute;inset:0;background:rgba(10,14,22,.42);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.app-sheet-card{position:relative;width:min(760px,calc(100% - 16px));max-height:calc(100dvh - 24px);overflow:auto;margin:0 auto 8px;padding:24px;border:1px solid var(--line);border-radius:28px;background:var(--bg);color:var(--text);box-shadow:0 30px 90px rgba(10,20,40,.25);transform:translateY(22px);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.app-sheet.open .app-sheet-card{transform:none}
+.app-sheet-card h2{margin:4px 52px 16px 2px;font-size:28px;letter-spacing:-.045em}
+.app-sheet-close{position:absolute;top:18px;right:18px;width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--text);cursor:pointer}
+.app-sheet-close svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.install-steps{margin:0;padding-left:22px;display:grid;gap:12px;font-size:15px;line-height:1.5;color:var(--text)}
+.install-steps .ios-share{width:18px;height:18px;vertical-align:-3px;fill:none;stroke:#3a6fc0;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(min-width:700px){.app-sheet{place-items:center}.app-sheet-card{margin:0 auto}}
+
+/* Cuenta con nick */
+.fav-account{margin:0 0 18px}
+.fav-form label{display:block;margin:0 0 10px;color:var(--muted);font-size:13px;line-height:1.45}
+.fav-row{display:flex;gap:8px}
+.fav-row input{flex:1;min-width:0;height:44px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:15px;outline:0}
+.fav-row input:focus{border-color:#8bb7e6;box-shadow:0 0 0 3px rgba(139,183,230,.3)}
+.fav-row button{height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--accent);color:var(--contrast);font:inherit;font-weight:760;cursor:pointer}
+.fav-error{min-height:16px;margin:8px 4px 0;color:#c8675a;font-size:12px}
+.fav-user{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.fav-user>div{flex:1;min-width:0}.fav-user strong{display:block;font-size:15px}.fav-user small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+.fav-dot{width:10px;height:10px;border-radius:50%;background:var(--muted)}
+.fav-dot.is-ok{background:#4f86d6;box-shadow:0 0 0 4px rgba(79,134,214,.18)}
+.fav-dot.is-busy{background:#8bb7e6;animation:favPulse 1s ease-in-out infinite alternate}
+.fav-dot.is-error{background:#f4aa9c}
+@keyframes favPulse{to{opacity:.35}}
+.fav-link{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:6px}
+.fav-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.fav-tabs{max-width:380px;margin:0 0 16px}
+.fav-count{margin-left:3px;font-weight:700;opacity:.65}
+@media(max-width:700px){.fav-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}

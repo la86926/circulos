@@ -1,0 +1,5 @@
+Sonido de piano: Salamander Grand Piano V3, de Alexander Holm.
+Licencia: Creative Commons Attribution 3.0 (CC BY 3.0) — https://creativecommons.org/licenses/by/3.0/
+Fuente original: https://archive.org/details/SalamanderGrandPianoV3
+Archivos MP3 (capa de velocidad 10) tomados del paquete @audio-samples/piano-mp3-velocity10.
+Se usan sin modificar; solo se renombraron (por ejemplo D#4 -> Ds4).

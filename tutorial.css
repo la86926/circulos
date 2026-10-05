@@ -1,0 +1,166 @@
+/* Círculos Music · tutorial guiado (mano animada, enfoque, saltos suaves)
+   Todo el aspecto usa las variables del sitio (--surface, --text, --accent…),
+   así que cambia solo entre modo claro y oscuro. */
+
+.tuto-layer{position:fixed;inset:0;z-index:10000;pointer-events:none;font-family:inherit;-webkit-tap-highlight-color:transparent}
+.tuto-layer[hidden]{display:none}
+
+/* Fondo atenuado para los pasos de bienvenida / cierre (sin elemento enfocado) */
+.tuto-dim{position:absolute;inset:0;background:rgba(10,12,10,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;transition:opacity .35s ease;pointer-events:none}
+.tuto-layer.is-modal .tuto-dim{opacity:1;pointer-events:auto}
+
+/* Anillo de enfoque: el "agujero" deja ver y tocar el elemento; el resto se atenúa */
+.tuto-ring{position:absolute;left:0;top:0;width:0;height:0;border-radius:18px;opacity:0;pointer-events:none;
+  box-shadow:0 0 0 3px rgba(255,255,255,.95),0 0 0 9999px rgba(10,12,10,.55);
+  transition:opacity .3s ease}
+.tuto-ring.is-on{opacity:1;animation:tutoGlow 2.4s ease-in-out infinite}
+.tuto-ring.is-moving{transition:opacity .3s ease,left .5s cubic-bezier(.2,.8,.2,1),top .5s cubic-bezier(.2,.8,.2,1),width .5s cubic-bezier(.2,.8,.2,1),height .5s cubic-bezier(.2,.8,.2,1),border-radius .3s ease}
+@keyframes tutoGlow{
+  0%,100%{box-shadow:0 0 0 3px rgba(255,255,255,.95),0 0 0 9999px rgba(10,12,10,.55)}
+  50%{box-shadow:0 0 0 6px rgba(255,255,255,.55),0 0 0 9999px rgba(10,12,10,.55)}
+}
+
+/* Mano: el origen (0,0) del contenedor es la punta del dedo */
+.tuto-hand{position:absolute;left:0;top:0;width:0;height:0;opacity:0;transition:opacity .25s ease;will-change:transform}
+.tuto-hand.is-on{opacity:1}
+.tuto-hand.is-moving{transition:opacity .25s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+.tuto-hand-in{position:absolute;left:-16px;top:-4px;width:46px;height:52px;transform-origin:16px 4px;transform:rotate(-14deg);filter:drop-shadow(0 7px 9px rgba(0,0,0,.38));opacity:0}
+.tuto-hand-in svg{display:block;width:100%;height:100%}
+.tuto-ripple{position:absolute;left:-19px;top:-19px;width:38px;height:38px;border-radius:50%;border:2.5px solid #fff;opacity:0;box-shadow:0 0 14px rgba(255,255,255,.55)}
+
+/* Gesto: tocar */
+.g-tap .tuto-hand-in{animation:tutoTap 2.4s cubic-bezier(.4,0,.2,1) infinite}
+.g-tap .tuto-ripple{animation:tutoRipple 2.4s ease-out infinite}
+@keyframes tutoTap{
+  0%{transform:translate(28px,36px) rotate(-6deg);opacity:0}
+  16%{opacity:1}
+  34%{transform:translate(0,0) rotate(-14deg);opacity:1}
+  40%{transform:translate(0,3px) rotate(-14deg) scale(.88)}
+  50%{transform:translate(0,0) rotate(-14deg) scale(1)}
+  72%{transform:translate(0,0) rotate(-14deg);opacity:1}
+  92%,100%{transform:translate(20px,28px) rotate(-6deg);opacity:0}
+}
+@keyframes tutoRipple{
+  0%,38%{opacity:0;transform:scale(.3)}
+  41%{opacity:.95;transform:scale(.45)}
+  64%{opacity:0;transform:scale(1.9)}
+  100%{opacity:0;transform:scale(1.9)}
+}
+
+/* Gesto: deslizar a los lados (--sw = recorrido) */
+.g-swipe .tuto-hand-in{animation:tutoSwipe 2.8s cubic-bezier(.45,0,.2,1) infinite}
+@keyframes tutoSwipe{
+  0%{transform:translate(var(--sw,70px),16px) rotate(-14deg);opacity:0}
+  12%{transform:translate(var(--sw,70px),0) rotate(-14deg);opacity:1}
+  22%{transform:translate(var(--sw,70px),3px) rotate(-14deg) scale(.88)}
+  62%{transform:translate(calc(var(--sw,70px)*-1),3px) rotate(-14deg) scale(.88)}
+  72%{transform:translate(calc(var(--sw,70px)*-1),0) rotate(-14deg) scale(1);opacity:1}
+  90%,100%{transform:translate(calc(var(--sw,70px)*-1),14px) rotate(-14deg);opacity:0}
+}
+
+/* Gesto: deslizar hacia arriba/abajo */
+.g-swipey .tuto-hand-in{animation:tutoSwipeY 2.8s cubic-bezier(.45,0,.2,1) infinite}
+@keyframes tutoSwipeY{
+  0%{transform:translate(14px,var(--sw,70px)) rotate(-14deg);opacity:0}
+  12%{transform:translate(0,var(--sw,70px)) rotate(-14deg);opacity:1}
+  22%{transform:translate(0,var(--sw,70px)) rotate(-14deg) scale(.88)}
+  62%{transform:translate(0,calc(var(--sw,70px)*-1)) rotate(-14deg) scale(.88)}
+  72%{transform:translate(0,calc(var(--sw,70px)*-1)) rotate(-14deg) scale(1);opacity:1}
+  90%,100%{transform:translate(12px,calc(var(--sw,70px)*-1)) rotate(-14deg);opacity:0}
+}
+
+/* Saltos elegantes: el botón "responde" justo cuando el dedo lo toca */
+.tuto-hop{animation:tutoHop 2.4s cubic-bezier(.3,0,.2,1) infinite;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes tutoHop{
+  0%,30%{transform:translateY(0) scale(1)}
+  38%{transform:translateY(1px) scale(.95)}
+  47%{transform:translateY(var(--hop-y,-8px)) scale(1.06)}
+  57%{transform:translateY(0) scale(.99)}
+  65%{transform:translateY(calc(var(--hop-y,-8px)*.35)) scale(1.01)}
+  74%,100%{transform:translateY(0) scale(1)}
+}
+/* Pista de deslizamiento: las tarjetas se asoman hacia el lado */
+.tuto-nudge{animation:tutoNudge 2.8s ease-in-out infinite}
+@keyframes tutoNudge{0%,36%{transform:translateX(0)}52%{transform:translateX(-14px)}68%,100%{transform:translateX(0)}}
+.tuto-nudge-y{animation:tutoNudgeY 2.8s ease-in-out infinite}
+@keyframes tutoNudgeY{0%,36%{transform:translateY(0)}52%{transform:translateY(-10px)}68%,100%{transform:translateY(0)}}
+
+/* Tarjeta del tutorial */
+.tuto-card{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  width:min(420px,calc(100% - 24px));padding:20px 20px 16px;box-sizing:border-box;
+  background:var(--surface,#fff);color:var(--text,#171817);border:1px solid var(--line,#d7d8d2);border-radius:26px;
+  box-shadow:0 26px 70px rgba(0,0,0,.34);pointer-events:auto;animation:tutoCardIn .38s cubic-bezier(.2,.8,.2,1)}
+.tuto-card.at-top{bottom:auto;top:92px}
+.tuto-card.at-side{left:var(--side-left);width:var(--side-w);bottom:auto;top:50%;transform:translateY(-50%)}
+.tuto-layer.is-modal .tuto-card{bottom:auto;top:50%;transform:translate(-50%,-50%);padding:28px 24px 20px;text-align:center}
+@keyframes tutoCardIn{from{opacity:0;margin-top:14px}to{opacity:1;margin-top:0}}
+.tuto-card.is-swapping{animation:none}
+
+.tuto-x{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line,#d7d8d2);background:var(--surface2,#efefeb);color:var(--text,#171817);display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s}
+.tuto-x:hover{background:var(--surface3,#e4e6e1)}
+.tuto-x:active{transform:scale(.88)}
+.tuto-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+
+.tuto-mark{display:none;width:64px;height:64px;margin:0 auto 14px;border-radius:18px}
+.tuto-layer.is-modal .tuto-mark{display:block}
+.tuto-art{display:none}
+.tuto-layer.is-welcome .tuto-mark{display:none}
+.tuto-layer.is-welcome .tuto-art{display:block;width:min(240px,66%);height:auto;margin:-4px auto 4px;pointer-events:none;user-select:none}
+html[data-theme=dark] .tuto-art{filter:invert(1) hue-rotate(180deg) saturate(1.5) brightness(1.2)}
+.tuto-kicker{margin:0 36px 6px 0;color:var(--muted,#6b6e6a);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.tuto-layer.is-modal .tuto-kicker{display:none}
+.tuto-title{margin:0;font-size:21px;line-height:1.15;letter-spacing:-.03em;font-weight:780;padding-right:34px}
+.tuto-layer.is-modal .tuto-title{font-size:26px;padding:0}
+.tuto-text{margin:9px 0 0;color:var(--muted,#6b6e6a);font-size:14.5px;line-height:1.55}
+.tuto-layer.is-modal .tuto-text{max-width:340px;margin:11px auto 0}
+.tuto-ok{display:none;margin:12px 0 0;color:var(--root2,#355f4d);font-size:14px;font-weight:760;align-items:center;gap:7px}
+html[data-theme="dark"] .tuto-ok{color:var(--root,#91bea2)}
+.tuto-ok svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tuto-card.is-ok .tuto-ok{display:flex;animation:tutoPop .4s cubic-bezier(.34,1.56,.64,1)}
+.tuto-layer.is-modal .tuto-ok{justify-content:center}
+@keyframes tutoPop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+.tuto-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.tuto-layer.is-modal .tuto-foot{flex-direction:column-reverse;gap:14px;margin-top:20px}
+.tuto-dots{display:flex;align-items:center;gap:6px;min-width:0}
+.tuto-dot{width:6px;height:6px;border-radius:999px;background:var(--line,#d7d8d2);transition:width .3s cubic-bezier(.2,.8,.2,1),background .3s}
+.tuto-dot.is-done{background:var(--muted,#6b6e6a)}
+.tuto-dot.is-now{width:20px;background:var(--accent,#171817)}
+.tuto-actions{display:flex;align-items:center;gap:8px}
+.tuto-layer.is-modal .tuto-actions{width:100%;justify-content:center;flex-direction:column-reverse}
+.tuto-btn{min-height:42px;border-radius:999px;border:1px solid transparent;padding:0 20px;font:inherit;font-size:14px;font-weight:760;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s,opacity .2s}
+.tuto-btn:active{transform:scale(.94)}
+.tuto-btn.is-primary{background:var(--accent,#171817);color:var(--contrast,#fff)}
+.tuto-btn.is-ghost{background:transparent;color:var(--muted,#6b6e6a)}
+.tuto-btn.is-ghost:hover{color:var(--text,#171817)}
+.tuto-btn[hidden]{display:none}
+.tuto-layer.is-modal .tuto-btn.is-primary{width:100%;min-height:48px;font-size:15px}
+.tuto-btn:focus-visible,.tuto-x:focus-visible,.tuto-fab:focus-visible{outline:3px solid color-mix(in srgb,var(--accent,#171817) 28%,transparent);outline-offset:2px}
+
+/* Botón flotante "?" para volver a ver la guía */
+.tuto-fab{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;width:46px;height:46px;border-radius:50%;border:1px solid var(--line,#d7d8d2);
+  background:color-mix(in srgb,var(--surface,#fff) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:var(--shadow,0 12px 30px rgba(0,0,0,.12));
+  color:var(--text,#171817);display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s ease}
+.tuto-fab:hover{transform:translateY(-2px)}
+.tuto-fab:active{transform:scale(.9)}
+.tuto-fab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tuto-fab.is-hint{animation:tutoHop 1.6s cubic-bezier(.3,0,.2,1) 3}
+body.tuto-on .tuto-fab{opacity:0;pointer-events:none}
+body.tuto-on.tuto-show-fab .tuto-fab{opacity:1;z-index:10001}
+body.menu-open .tuto-fab{opacity:0;pointer-events:none}
+body.tuto-on.menu-open.tuto-show-fab .tuto-fab{opacity:1}
+
+/* Entrada del menú lateral */
+.tuto-menu-item{width:100%;font:inherit;text-align:left;cursor:pointer}
+
+/* Menos movimiento: sin gestos en bucle ni saltos, solo el enfoque */
+@media (prefers-reduced-motion:reduce){
+  .tuto-hop,.tuto-nudge,.tuto-nudge-y,.tuto-ring.is-on,.tuto-fab.is-hint{animation:none!important}
+  .g-tap .tuto-hand-in,.g-swipe .tuto-hand-in,.g-swipey .tuto-hand-in{animation:none!important;opacity:1}
+  .g-tap .tuto-ripple,.tuto-card{animation:none!important}
+  .tuto-ring.is-moving,.tuto-hand.is-moving{transition:none}
+}
+
+/* Con "Favoritos" abierto, el botón de ayuda queda encima de la hoja */
+body.favsheet-open .tuto-fab{z-index:95}
+body.favsheet-open.chord-detail-open .tuto-fab{z-index:30}

@@ -1,0 +1,50 @@
+/* Círculos Music · estilos propios de la página Círculos
+   (antes repartidos entre circle-wheel.css, performance-ui.css y tres hojas que se inyectaban desde JavaScript) */
+
+/* Base de la app: sin resaltado al tocar, sin zoom de texto */
+*{-webkit-tap-highlight-color:transparent}
+html,body{touch-action:pan-x pan-y!important;-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
+body:not(.menu-open):not(.gift-open){overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:auto!important}
+html.chrome-ios,html.chrome-ios body{height:auto!important;min-height:100%!important;max-height:none!important;overflow-x:hidden!important}
+html.chrome-ios body:not(.menu-open):not(.gift-open){position:static!important;inset:auto!important;width:auto!important;overflow-y:auto!important;overscroll-behavior-y:auto!important}
+html.chrome-ios .app-header{position:sticky!important;top:0!important}
+html.chrome-ios #circlesView{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-bottom:112px!important}
+
+/* Cabecera, nomenclatura y tonalidad */
+#circlesView .hero{grid-template-columns:1fr;margin-bottom:22px}
+#circlesView>.toolbar{display:block;margin-bottom:18px}
+#circlesView>.toolbar .control-card{width:100%}
+#circlesView>.toolbar .segmented{max-width:420px;margin:0 auto}
+#toneSelector .tone-btn{font-size:16px;font-weight:800;letter-spacing:-.03em}
+.minimal-scale-control{position:relative;display:inline-flex;align-items:center;min-width:142px}
+.minimal-scale-select{width:100%;height:38px;appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--text);padding:0 34px 0 13px;font-size:12px;font-weight:760;cursor:pointer}
+.minimal-scale-arrow{position:absolute;right:12px;pointer-events:none;color:var(--muted);font-size:12px}
+@media(max-width:700px){#selector .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.minimal-scale-control{min-width:128px}}
+@media(max-width:500px){#selector .panel-head{display:grid;grid-template-columns:1fr auto;align-items:center}.minimal-scale-select{height:36px}.minimal-scale-control{min-width:120px}}
+
+/* Círculo armónico */
+body{padding-bottom:0!important;overflow-x:hidden}
+#circlesView{padding-bottom:14px!important}
+#circlesView .harmony-wheel-panel{margin-bottom:0!important}
+.harmony-wheel-panel{overflow:visible}.harmony-wheel-wrap{padding:22px 22px 8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,260px);gap:24px;align-items:center}.harmony-wheel-stage{display:grid;place-items:center;min-width:0}.harmony-wheel-svg{display:block;width:min(100%,720px);height:auto;overflow:visible;-webkit-tap-highlight-color:transparent;user-select:none}.harmony-wheel-ring{fill:none;stroke:var(--line);stroke-width:3}.harmony-wheel-spoke{stroke:var(--line);stroke-width:2;stroke-dasharray:4 7}.harmony-wheel-node{cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent;transform-box:fill-box;transform-origin:center;transition:transform .16s ease,filter .16s ease}.harmony-wheel-node:focus,.harmony-wheel-node:active{outline:none}.harmony-wheel-node:hover{transform:scale(1.035);filter:drop-shadow(0 8px 13px rgba(0,0,0,.13))}.harmony-wheel-node-bg{stroke-width:3}.harmony-wheel-node.major .harmony-wheel-node-bg{fill:var(--wheel-major-fill);stroke:var(--wheel-major-stroke)}.harmony-wheel-node.minor .harmony-wheel-node-bg{fill:var(--wheel-minor-fill);stroke:var(--wheel-minor-stroke)}.harmony-wheel-node.diminished .harmony-wheel-node-bg{fill:var(--wheel-dim-fill);stroke:var(--wheel-dim-stroke);stroke-dasharray:6 4}.harmony-wheel-node.active .harmony-wheel-node-bg{fill:var(--accent);stroke:var(--accent);stroke-width:5}
+.harmony-wheel-degree{fill:var(--muted);font-size:22px;font-weight:720;text-anchor:middle}.harmony-wheel-node.major .harmony-wheel-degree{fill:var(--wheel-major-stroke)}.harmony-wheel-node.minor .harmony-wheel-degree{fill:var(--wheel-minor-stroke)}.harmony-wheel-node.diminished .harmony-wheel-degree{fill:var(--wheel-dim-stroke)}
+.harmony-wheel-name{fill:var(--text);font-size:34px;font-weight:820;text-anchor:middle;letter-spacing:-.7px}.harmony-wheel-function{fill:color-mix(in srgb,var(--text) 72%,var(--muted));font-size:18px;font-weight:650;text-anchor:middle}.harmony-wheel-notes{fill:var(--muted);font-size:18px;font-weight:560;text-anchor:middle;letter-spacing:0}
+.harmony-wheel-node.active .harmony-wheel-name,.harmony-wheel-node.active .harmony-wheel-function{fill:var(--contrast)}.harmony-wheel-node.active .harmony-wheel-degree,.harmony-wheel-node.active .harmony-wheel-notes{fill:color-mix(in srgb,var(--contrast) 78%,transparent)}
+.harmony-wheel-center-node .harmony-wheel-degree{display:none}.harmony-wheel-node.minor:not(.harmony-wheel-center-node) .harmony-wheel-degree{font-size:24px}
+.harmony-wheel-center-node .harmony-wheel-name{font-size:39px;font-weight:840}.harmony-wheel-center-node .harmony-wheel-function{font-size:21px;font-weight:680}.harmony-wheel-center-node .harmony-wheel-notes{font-size:21px;font-weight:580}.harmony-wheel-info{padding:18px;border-radius:18px;background:var(--bg);border:1px solid var(--line)}.harmony-wheel-info h4{margin:0;font-size:16px;letter-spacing:-.02em}.harmony-wheel-info p{margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.5}.harmony-wheel-legend{display:grid;gap:10px;margin-top:17px}.harmony-wheel-legend-item{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}.harmony-wheel-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto}.harmony-wheel-dot.major{background:var(--wheel-major-fill);border-color:var(--wheel-major-stroke)}.harmony-wheel-dot.minor{background:var(--wheel-minor-fill);border-color:var(--wheel-minor-stroke)}.harmony-wheel-dot.diminished{background:var(--wheel-dim-fill);border-color:var(--wheel-dim-stroke);border-style:dashed}
+@media(max-width:850px){.harmony-wheel-wrap{grid-template-columns:1fr}.harmony-wheel-info{display:grid;grid-template-columns:1fr auto;gap:12px 22px;align-items:start}.harmony-wheel-legend{margin-top:0;min-width:150px}}@media(max-width:560px){#circlesView{padding-bottom:6px!important}.harmony-wheel-wrap{padding:6px 0 4px;gap:8px}.harmony-wheel-info{display:block;margin:0 8px;padding:13px}.harmony-wheel-legend{margin-top:12px}.harmony-wheel-node:hover{transform:none}.harmony-wheel-degree{font-size:22px}.harmony-wheel-name{font-size:33px}.harmony-wheel-function{font-size:18px}.harmony-wheel-notes{font-size:17px}.harmony-wheel-center-node .harmony-wheel-name{font-size:38px}.harmony-wheel-center-node .harmony-wheel-function{font-size:20px}.harmony-wheel-center-node .harmony-wheel-notes{font-size:20px}#toneSelector .tone-btn::after{font-size:15px}}
+
+.harmony-wheel-node.playing .harmony-wheel-node-bg{stroke-width:7}
+.harmony-wheel-node.playing .harmony-wheel-name{font-weight:900}
+
+/* Panel de instrumento */
+#circlesView>#instrumento{display:block;margin-top:18px}
+#circlesView>#instrumento .instrument-tabs{display:block;margin:0 24px 18px}
+#circlesView>#instrumento .instrument-tabs .segmented{max-width:420px;margin:0 auto}
+@media(max-width:560px){#circlesView>#instrumento .instrument-tabs{margin:0 16px 14px}}
+
+/* Piano */
+#instrumento .piano-scroll{overflow-x:hidden;overflow-y:hidden;padding:3px 2px 10px;scrollbar-width:none;contain:layout paint style;isolation:isolate;transform:translateZ(0);backface-visibility:hidden}
+#instrumento .piano-scroll::-webkit-scrollbar{display:none}
+#pianoKeyboard{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;contain:layout paint style;transform:translateZ(0)}
+#pianoKeyboard .white-key.performance-playing,#pianoKeyboard .black-key.performance-playing{transform:translateY(2px)}

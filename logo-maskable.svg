@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Círculos Music">
+  <rect width="512" height="512" fill="#f8fafd"/>
+  <g transform="translate(256 256) scale(0.8) translate(-256 -256)">
+  <path d="M273.18 79.84A177 177 0 0 1 383.02 132.73L335.66 178.70A111 111 0 0 0 266.77 145.52Z" fill="#c4b0ff" stroke="#c4b0ff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M404.44 159.60A177 177 0 0 1 431.57 278.45L366.10 270.08A111 111 0 0 0 349.09 195.54Z" fill="#9dcfff" stroke="#9dcfff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M423.92 311.95A177 177 0 0 1 347.91 407.26L313.64 350.86A111 111 0 0 0 361.31 291.09Z" fill="#ffbcae" stroke="#ffbcae" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M316.95 422.17A177 177 0 0 1 195.05 422.17L217.77 360.21A111 111 0 0 0 294.23 360.21Z" fill="#9dcfff" stroke="#9dcfff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M164.09 407.26A177 177 0 0 1 88.08 311.95L150.69 291.09A111 111 0 0 0 198.36 350.86Z" fill="#c4b0ff" stroke="#c4b0ff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M80.43 278.45A177 177 0 0 1 107.56 159.60L162.91 195.54A111 111 0 0 0 145.90 270.08Z" fill="#9dcfff" stroke="#9dcfff" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M128.98 132.73A177 177 0 0 1 238.82 79.84L245.23 145.52A111 111 0 0 0 176.34 178.70Z" fill="#ffbcae" stroke="#ffbcae" stroke-width="14" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="74" fill="#171817"/>
+  </g>
+</svg>
