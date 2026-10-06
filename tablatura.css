@@ -15,6 +15,14 @@ html[data-theme=dark] .tab-drop.is-over{background:#1a2638}
 .tab-progress p{margin:8px 2px 0;color:var(--muted);font-size:13px}
 .tab-error{margin:12px 2px 0;color:#c8675a;font-size:14px}
 .tab-error:empty{display:none}
+.tab-newpdf{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;height:44px;padding:0 16px 0 13px;border:1.5px solid #8fb4e3;border-radius:999px;background:#eef5fd;color:#2f64a8;font:inherit;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(60,110,190,.14);transition:background-color .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.tab-newpdf:hover{background:#e2eefc}
+.tab-newpdf:active{transform:scale(.95)}
+.tab-newpdf svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+html[data-theme=dark] .tab-newpdf{background:#1a2638;color:#9dc4f5;border-color:#41679c;box-shadow:none}
+.tab-song-titles{flex:1;min-width:0}
+.tab-newpdf-song{margin-top:2px}
+@media(max-width:560px){.tab-newpdf-song{height:40px;padding:0 12px 0 10px;font-size:13px}.tab-list-panel .panel-head{flex-wrap:wrap;gap:12px}}
 .tab-link{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:760;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .tab-search{margin:16px 20px 6px}
 .tab-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:12px 20px 22px;max-height:62vh;overflow:auto}

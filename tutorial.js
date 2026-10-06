@@ -87,6 +87,8 @@ function convSteps() {
     { title: 'Busca una canción', text: 'Escribe el número o el nombre de la canción.',
       ring: '#tabSearch', radius: 16, hop: '#tabSearch', hopY: '-4px', at: '#tabSearch',
       tap: { sel: '#tabSearch', ev: 'input' }, ok: '¡Encontrada!' },
+    { title: 'Otro PDF cuando quieras', text: 'Con este botón subes otro PDF de partituras. Tus canciones de ahora se reemplazan por las del nuevo.',
+      ring: '#tabOther', radius: 24, pad: 4, hop: '#tabOther', hopY: '-4px', at: '#tabOther', gesture: 'tap' },
     { title: 'Abre una canción', text: 'Toca una canción para verla y escucharla.',
       ring: '#tabList .tab-item', radius: 16, hop: '#tabList .tab-item', hopY: '-4px', at: '#tabList .tab-item',
       tap: { sel: '#tabList .tab-item' }, ok: '¡Abierta!' }];
@@ -119,6 +121,8 @@ const SONG_STEPS = [
     ring: '.tab-tempo', radius: 16, pad: 6, at: '#tabTempo', gesture: 'swipe', tap: { sel: '#tabTempo', ev: 'input' }, ok: '¡Ajustada!' },
   { title: 'Escucha desde una nota', text: 'Toca cualquier nota de la partitura y suena desde ahí. La nota que suena se marca en rosado.',
     ring: '#tabSheet .tab-line', radius: 14, at: '#tabSheet .tl-hit', tap: { sel: '.tl-hit' }, ok: '¡Desde ahí!' },
+  { title: 'Otro PDF desde aquí', text: 'No hace falta volver a la lista: con este botón subes otro PDF desde la misma canción.',
+    ring: '#tabOtherSong', radius: 24, pad: 4, hop: '#tabOtherSong', hopY: '-4px', at: '#tabOtherSong', gesture: 'tap' },
   { title: 'Posición en el mástil', text: 'En guitarra y ukelele eliges dónde tocar: a la mitad del mástil, cerca de la cejuela o usando cuerdas al aire.',
     ring: '#tabModeWrap', radius: 16, pad: 5, hop: '#tabMode', hopY: '-4px', at: '#tabMode',
     tap: { sel: '#tabMode', ev: 'change' }, ok: '¡Cambiada!', onEnter: () => instOn('guitar', true), onExit: instBack },

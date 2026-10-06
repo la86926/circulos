@@ -43,6 +43,7 @@ async function readPdf(file){
     if(!songs.length){$('tabError').textContent='No se encontraron partituras que se puedan leer en este PDF. Debe estar hecho con un programa de partituras; las fotos o escaneos no funcionan.';return;}
     book={name:file.name,size:file.size,songs};
     DB.set('last',book);
+    $('tabSearch').value='';
     showList();
     toast(`${songs.length} ${songs.length===1?'canción lista':'canciones listas'}`);
     cloudSave();
@@ -51,7 +52,12 @@ async function readPdf(file){
     $('tabError').textContent='No se pudo leer este PDF. Prueba con otro archivo.';
   }
 }
-$('tabFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)readPdf(f);e.target.value='';});
+/* Otro PDF: desde la lista o desde la canción se abre el selector; si se elige un archivo, se muestra el avance */
+function openLoad(){
+  stop();$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();
+  history.replaceState(null,'','#');scrollTo({top:Math.max(0,$('tabLoad').offsetTop-90),behavior:'smooth'});
+}
+$('tabFile').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if($('tabLoad').hidden)openLoad();readPdf(f);});
 const drop=$('tabDrop');
 ['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('is-over');}));
 ['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('is-over');}));
@@ -71,7 +77,7 @@ function renderList(){
 }
 $('tabSearch').addEventListener('input',renderList);
 $('tabList').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)openSong(+b.dataset.i);});
-$('tabOther').addEventListener('click',()=>{$('tabListPanel').hidden=true;$('tabSong').hidden=true;KB.refresh();FAB.refresh();$('tabLoad').hidden=false;$('tabFile').click();});
+document.querySelectorAll('.tab-newpdf').forEach(b=>b.addEventListener('click',()=>$('tabFile').click()));
 $('tabBack').addEventListener('click',()=>{stop();$('tabSong').hidden=true;$('tabListPanel').hidden=false;KB.refresh();FAB.refresh();history.replaceState(null,'','#');});
 
 /* ───────── Digitación: dónde tocar cada nota ─────────
