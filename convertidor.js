@@ -6,7 +6,15 @@
 const KEY='circulos-convertidor';
 const HASH='453afb3d310def9d21d43098461dcd25b506fe4b760db482b7b524e82b14b5cc';   // contraseña cifrada (SHA-256)
 const onPage=!!document.getElementById('tabView');
-const ok=()=>{try{return sessionStorage.getItem(KEY)==='1';}catch(e){return false;}};
+/* Pasa sin contraseña si ya se escribió en esta pestaña, o si el ID de Favoritos de este dispositivo ya la tiene
+   (se escribió en cualquier dispositivo con ese ID). Sin ID, se pide en cada visita. */
+const ok=()=>{
+  try{
+    if(sessionStorage.getItem(KEY)==='1')return true;
+    const nick=(localStorage.getItem('circulos-nick')||'').toLowerCase();
+    return !!nick&&localStorage.getItem('circulos-conv-id')===nick;
+  }catch(e){return false;}
+};
 const ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17V5l10-2v12"/><circle cx="6.5" cy="17" r="2.5"/><circle cx="16.5" cy="15" r="2.5"/></svg>';
 async function sha(t){
   if(crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -46,6 +54,7 @@ function ask({onOk,locked=false}){
     e.preventDefault();const input=sheet.querySelector('#convPass'),msg=sheet.querySelector('.fav-error');
     if(await sha(input.value.trim())===HASH){
       try{sessionStorage.setItem(KEY,'1');}catch(err){}
+      document.dispatchEvent(new CustomEvent('circulos:conv-ok'));            // con ID, queda guardada para sus otros dispositivos
       sheet._locked=false;sheet.classList.remove('open');input.value='';msg.textContent='';sheet._onOk&&sheet._onOk();
     }else{
       msg.textContent='Contraseña incorrecta.';input.value='';
@@ -58,13 +67,20 @@ function ask({onOk,locked=false}){
 
 /* Opción del menú (en todas las páginas) */
 const item=window.CirculosShell?.addMenuItem({id:'convMenuItem',icon:ICON,title:'Convertidor de partituras',subtitle:'Pasa una partitura en PDF a tablatura.',
-  onClick:()=>{if(onPage&&ok())return;ask({onOk:()=>{if(!onPage)location.href='tablatura.html';}});}});
+  onClick:()=>{if(ok()){if(!onPage)location.href='tablatura.html';return;}ask({onOk:()=>{if(!onPage)location.href='tablatura.html';}});}});
 if(item&&onPage){item.classList.add('active');item.setAttribute('aria-current','page');}
 
 /* En la página del convertidor: sin contraseña no se muestra nada */
 if(onPage&&!ok()){
   document.body.classList.add('conv-locked');
   const open=()=>ask({locked:true,onOk:()=>document.body.classList.remove('conv-locked')});
+  /* Si el ID llega a la nube y ya tenía la contraseña, se abre solo */
+  document.addEventListener('circulos:conv-unlock',()=>{
+    if(!ok()||!document.body.classList.contains('conv-locked'))return;
+    const sh=document.getElementById('convSheet');if(sh){sh._locked=false;sh.classList.remove('open');}
+    document.body.classList.remove('conv-locked');
+    window.CirculosShell?.toast('Convertidor abierto con tu ID');
+  });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',open,{once:true});else open();
 }
 })();

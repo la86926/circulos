@@ -45,6 +45,7 @@ async function readPdf(file){
     DB.set('last',book);
     showList();
     toast(`${songs.length} ${songs.length===1?'canción lista':'canciones listas'}`);
+    cloudSave();
   }catch(err){
     console.error('Tablatura:',err);$('tabProgress').hidden=true;
     $('tabError').textContent='No se pudo leer este PDF. Prueba con otro archivo.';
@@ -372,7 +373,27 @@ const KB=(()=>{
   },{passive:false});
   el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;refresh();});   // se quita solo en esta canción
   addEventListener('resize',()=>{if(!el.hidden)placeSoon();});
-  return{setSong,refresh,light};
+  /* Demostración para la guía: el teclado se mueve solo y luego crece y se achica, como si lo arrastraran */
+  let demoRaf=0,demoOrig=null;
+  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  function demo(on){
+    cancelAnimationFrame(demoRaf);demoRaf=0;
+    if(!on){if(demoOrig){st={...demoOrig};demoOrig=null;place();}return;}
+    if(el.hidden)return;
+    if(!st)place();
+    demoOrig={...st};
+    const dx=Math.min(90,innerWidth*.18)*(st.x+st.w/2>innerWidth/2?-1:1),dy=Math.min(130,innerHeight*.16),t0=performance.now(),T=4600;
+    const loop=now=>{
+      const t=((now-t0)%T)/T;let k=0,sc=1;
+      if(t<.28)k=ease(t/.28);else if(t<.42)k=1;else if(t<.7)k=1-ease((t-.42)/.28);
+      else{const u=(t-.7)/.3;sc=1+.2*Math.sin(u*Math.PI);}
+      st.x=demoOrig.x+dx*k;st.y=demoOrig.y+dy*k;st.w=demoOrig.w*sc;place();
+      demoRaf=requestAnimationFrame(loop);
+    };
+    demoRaf=requestAnimationFrame(loop);
+  }
+  el.addEventListener('pointerdown',()=>{if(demoRaf){cancelAnimationFrame(demoRaf);demoRaf=0;demoOrig=null;}},true);   // si la persona lo toca, manda ella
+  return{setSong,refresh,light,demo};
 })();
 
 /* ───────── Escuchar ───────── */
@@ -449,7 +470,25 @@ const FAB=(()=>{
   btn.addEventListener('pointerup',end);btn.addEventListener('pointercancel',end);
   btn.addEventListener('click',()=>{if(moved){moved=false;return;}play();});
   addEventListener('resize',()=>{if(el.classList.contains('show'))placeSoon();});
-  return{refresh,sync};
+  let demoRaf=0,demoOrig=null;
+  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  function demo(on){
+    cancelAnimationFrame(demoRaf);demoRaf=0;
+    if(!on){if(demoOrig){st={...demoOrig};demoOrig=null;place();}return;}
+    if(!el.classList.contains('show'))return;
+    if(!st)place();
+    demoOrig={...st};
+    const dx=Math.min(120,innerWidth*.28)*(st.x+S/2>innerWidth/2?-1:1),dy=-Math.min(150,innerHeight*.18),t0=performance.now(),T=3600;
+    const loop=now=>{
+      const t=((now-t0)%T)/T;let k=0;
+      if(t<.32)k=ease(t/.32);else if(t<.5)k=1;else if(t<.82)k=1-ease((t-.5)/.32);
+      st.x=demoOrig.x+dx*k;st.y=demoOrig.y+dy*k;place();
+      demoRaf=requestAnimationFrame(loop);
+    };
+    demoRaf=requestAnimationFrame(loop);
+  }
+  btn.addEventListener('pointerdown',()=>{if(demoRaf){cancelAnimationFrame(demoRaf);demoRaf=0;demoOrig=null;}},true);
+  return{refresh,sync,demo};
 })();
 
 /* Al cambiar de pantalla o de pestaña, el sonido se corta */
@@ -460,6 +499,39 @@ document.addEventListener('click',e=>{if(e.target.closest('a[href],#menuBtn,.app
 $('tabSheet').addEventListener('click',e=>{const h=e.target.closest('.tl-hit');if(h)play(+h.dataset.i);});
 $('tabPrint').addEventListener('click',()=>{pause();print();});
 
+/* ───────── Con ID de Favoritos: el cancionero convertido viaja a sus otros dispositivos ───────── */
+let cloudBusy=false;
+async function cloudSave(){
+  const F=window.CirculosFavs;
+  if(!book||!F?.nick||cloudBusy)return;
+  cloudBusy=true;
+  try{const id=await F.saveBook(book);if(id){book.cloudId=id;DB.set('last',book);toast(`Tus partituras quedaron en tu ID «${F.nick}»: aparecerán en tus otros dispositivos`);}}
+  catch(err){console.error('Tablatura:',err);toast('No se pudieron guardar tus partituras en la nube');}
+  finally{cloudBusy=false;}
+}
+async function cloudSync(meta){
+  const F=window.CirculosFavs;
+  if(!F?.nick||cloudBusy)return;
+  if(!meta){if(book&&!book.cloudId)cloudSave();return;}            // la nube aún no tiene cancionero: sube el de aquí
+  if(book&&book.cloudId===meta.id)return;                          // ya es el mismo
+  cloudBusy=true;
+  try{
+    toast('Trayendo tus partituras desde tu ID…');
+    const b=await F.loadBook(meta);if(!b)return;
+    const wasOpen=song&&!$('tabSong').hidden?song.number:null;
+    book=b;DB.set('last',book);
+    if(wasOpen!=null){const i=book.songs.findIndex(x=>x.number===wasOpen);if(i>=0)openSong(i);else showList();}else showList();
+    $('tabDropTitle').textContent='Elegir otra partitura en PDF';
+    toast(`${book.songs.length} canciones listas, desde tu ID`);
+  }catch(err){console.error('Tablatura:',err);toast('No se pudieron traer tus partituras');}
+  finally{cloudBusy=false;}
+}
+let bookLoaded=false;
+document.addEventListener('circulos:cloud-book',e=>{if(bookLoaded)cloudSync(e.detail);});
+
+/* Para la guía (tutorial.js): demostraciones del teclado y del botón flotante */
+window.CirculosTablatura={kbDemo:on=>KB.demo(on),fabDemo:on=>FAB.demo(on)};
+
 /* ───────── Inicio: abre el último PDF leído en este dispositivo ───────── */
 (async()=>{
   const last=await DB.get('last');
@@ -469,5 +541,8 @@ $('tabPrint').addEventListener('click',()=>{pause();print();});
     if(h){const i=book.songs.findIndex(s=>String(s.number)===h);if(i>=0)openSong(i);}
     $('tabDropTitle').textContent='Elegir otra partitura en PDF';
   }
+  bookLoaded=true;
+  const F=window.CirculosFavs;                                      // si el ID ya respondió antes de abrir el cancionero
+  if(F?.nick&&F.bookMeta!==undefined&&F.bookMeta)cloudSync(F.bookMeta);
 })();
 })();

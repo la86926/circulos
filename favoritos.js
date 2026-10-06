@@ -50,6 +50,24 @@ const toggle=entry=>entry&&toggleKey(entry.id);
 let fb=null,ref=null,stopSnap=null,uploadTimer=0,lastUpload=0,connecting=null;
 const KEY_AT='circulos-favs-at',KEY_SYNCED='circulos-favs-synced';
 const KEY_MOVED='circulos-moved-to',KEY_MOVED_NICK='circulos-moved-nick';
+/* Convertidor de partituras: con ID, la contraseña se escribe una vez y el cancionero (ya convertido)
+   viaja a los demás dispositivos de ese ID. Sin ID, nada de esto sale del dispositivo. */
+const KEY_CONV='circulos-conv',KEY_CONV_ID='circulos-conv-id',KEY_BOOK='circulos-libro',BOOK_PREFIX='circuloslibro-',PART=700000;
+let bookMeta=null;
+const sessionConv=()=>{try{return sessionStorage.getItem('circulos-convertidor')==='1';}catch(e){return false;}};
+const convOn=()=>!!nick&&(store.get(KEY_CONV_ID)===nick.toLowerCase()||sessionConv());
+function readExtras(d){
+  const st=d&&d.l1&&d.l1.storage;if(!st)return;
+  if(st[KEY_CONV]==='1'&&nick){
+    const was=store.get(KEY_CONV_ID)===nick.toLowerCase();
+    store.set(KEY_CONV_ID,nick.toLowerCase());
+    if(!was)document.dispatchEvent(new CustomEvent('circulos:conv-unlock'));
+  }
+  let m=null;try{m=st[KEY_BOOK]?JSON.parse(st[KEY_BOOK]):null;}catch(e){m=null;}
+  const changed=(m&&m.id)!==(bookMeta&&bookMeta.id);
+  if(m||!bookMeta)bookMeta=m;
+  if(changed||m===null)document.dispatchEvent(new CustomEvent('circulos:cloud-book',{detail:bookMeta}));
+}
 /* Si el ID se cambió, el documento viejo queda como aviso que apunta al nuevo */
 const movedTo=d=>{const st=d&&d.l1&&d.l1.storage;return st&&st[KEY_MOVED]?{id:st[KEY_MOVED],nick:st[KEY_MOVED_NICK]||st[KEY_MOVED].replace(DOC_PREFIX,'')}:null;};
 const localAt=()=>Number(store.get(KEY_AT))||0;
@@ -107,10 +125,13 @@ async function connect(name,{silent=false,mode=''}={}){
     store.set(KEY_NICK,moved.nick);return connect(moved.nick,{silent:true});
   }
   const remote=docExists&&!moved?readRemote(snap.data()):null;       // un ID que quedó libre se usa como nuevo
+  bookMeta=null;
   if(mode==='enter'&&!remote){ref=null;setCloud('off');throw new Error(`No existe el ID «${name}». Si es la primera vez, toca Crear.`);}
   if(mode==='create'&&remote){ref=null;setCloud('off');throw new Error(`El ID «${name}» ya existe. Si es tuyo, toca Entrar; si no, elige otro.`);}
   const firstTimeHere=store.get(KEY_SYNCED)!==id;
   nick=name;store.set(KEY_NICK,nick);
+  if(remote)readExtras(snap.data());
+  const needConv=convOn()&&!(remote&&snap.data().l1?.storage?.[KEY_CONV]==='1');
   if(!remote){await upload();}                                       // ID nuevo: sube lo de este dispositivo
   else if(firstTimeHere){                                            // primera vez en este dispositivo: se juntan ambos
     const joined=merge(remote.list,favs),changed=joined.length!==remote.list.length;
@@ -119,7 +140,9 @@ async function connect(name,{silent=false,mode=''}={}){
   }
   else if(remote.at>=localAt())applyRemote(remote);                  // la nube es más reciente
   else await upload();                                               // este dispositivo es más reciente
+  if(remote&&needConv)await upload();                                 // la contraseña se puso aquí antes de entrar con el ID
   store.set(KEY_SYNCED,id);
+  if(!remote)document.dispatchEvent(new CustomEvent('circulos:cloud-book',{detail:null}));
   listen();
   setCloud('ok');
   if(!silent)toast(remote?`¡Hola, ${nick}! Tus acordes ya están aquí.`:`Listo, creaste el ID «${nick}». Tus acordes se guardan en la nube.`);
@@ -136,6 +159,7 @@ function listen(){
       if(d.updatedBy!==clientId){stopSnap?.();stopSnap=null;ref=null;toast(`Tu ID cambió a «${moved.nick}» en otro dispositivo`);nick=moved.nick;store.set(KEY_NICK,nick);reconnect();}
       return;
     }
+    readExtras(d);
     if(d.updatedBy===clientId&&Date.now()-lastUpload<4000){setCloud('ok');return;}
     const r=readRemote(d);
     if(r&&r.at>=localAt()){if(applyRemote(r))toast('Favoritos actualizados desde otro dispositivo');}
@@ -150,13 +174,53 @@ async function upload(){
   if(!ref||!fb)return;
   lastUpload=Date.now();
   const at=localAt()||Date.now(),{fs}=fb;
-  const l1={storage:{[KEY_FAVS]:JSON.stringify(favs),[KEY_AT]:String(at)},page:{}};
+  const storage={[KEY_FAVS]:JSON.stringify(favs),[KEY_AT]:String(at)};
+  if(convOn())storage[KEY_CONV]='1';
+  if(bookMeta)storage[KEY_BOOK]=JSON.stringify(bookMeta);
+  const l1={storage,page:{}};
   const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
   const full=()=>fs.setDoc(ref,{l1,l2:{storage:{},page:{}},...meta});
   if(!docExists){await full();docExists=true;return;}
   try{await fs.setDoc(ref,{l1,...meta},{merge:true});}
   catch(err){if(String(err&&err.code).includes('permission-denied')){await full();return;}throw err;}
 }
+/* ───────── Cancionero del Convertidor en la nube ───────── */
+const b64=buf=>{let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s);};
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function gzip(text){return b64(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());}
+async function gunzip(t){return await new Response(new Blob([unb64(t)]).stream().pipeThrough(new DecompressionStream('gzip'))).text();}
+async function ready(){
+  if(!nick)throw new Error('Sin ID');
+  if(connecting)await connecting;
+  if(!ref||!fb)await connect(nick,{silent:true});
+  return fb;
+}
+async function saveBook(book){
+  if(!nick||typeof CompressionStream==='undefined')return null;
+  const {db,fs}=await ready();
+  const data=await gzip(JSON.stringify({name:book.name,size:book.size,songs:book.songs}));
+  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8),parts=Math.max(1,Math.ceil(data.length/PART));
+  const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
+  for(let i=0;i<parts;i++)await fs.setDoc(fs.doc(db,COLLECTION,`${BOOK_PREFIX}${id}-${i}`),{l1:{storage:{part:data.slice(i*PART,(i+1)*PART),i:String(i),of:String(parts)},page:{}},l2:{storage:{},page:{}},...meta});
+  bookMeta={id,parts,name:book.name,songs:book.songs.length,at:Date.now()};
+  lastUpload=Date.now();await upload();
+  return id;
+}
+async function loadBook(m=bookMeta){
+  if(!m||typeof DecompressionStream==='undefined')return null;
+  const {db,fs}=await ready();
+  let data='';
+  for(let i=0;i<m.parts;i++){const snap=await fs.getDoc(fs.doc(db,COLLECTION,`${BOOK_PREFIX}${m.id}-${i}`));if(!snap.exists())return null;data+=snap.data().l1.storage.part;}
+  const book=JSON.parse(await gunzip(data));book.cloudId=m.id;
+  return book;
+}
+/* La contraseña del Convertidor se escribió en este dispositivo: si hay ID, queda guardada en él */
+document.addEventListener('circulos:conv-ok',()=>{
+  if(!nick)return;
+  store.set(KEY_CONV_ID,nick.toLowerCase());
+  if(ref)upload().catch(err=>console.error('Favoritos:',err));else reconnect();
+});
+
 function scheduleUpload(){
   store.set(KEY_AT,String(Date.now()));                              // hora de este cambio
   if(!nick)return;
@@ -202,7 +266,7 @@ async function rename(oldName,newName){
   toast(`Listo, ahora tu ID es «${newName}»`);
 }
 function signOut(){
-  stopSnap?.();stopSnap=null;ref=null;nick='';store.del(KEY_NICK);store.del(KEY_SYNCED);setCloud('off');
+  stopSnap?.();stopSnap=null;ref=null;nick='';store.del(KEY_NICK);store.del(KEY_SYNCED);store.del(KEY_CONV_ID);bookMeta=null;setCloud('off');
   toast('Saliste. Tus acordes siguen en este dispositivo.');
 }
 
@@ -332,7 +396,7 @@ const ICON_FAV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5s-6
   if(pageEl)a.setAttribute('aria-current','page');
   a.innerHTML=`<span class="app-choice-icon">${ICON_FAV}</span><strong>Favoritos</strong><small>Tus acordes guardados, en todos tus dispositivos.</small>`;
   picker.appendChild(a);})();
-window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;}};
+window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,get bookMeta(){return bookMeta;}};
 
 /* En la página de Favoritos: dibuja la cuenta, las pestañas y los acordes guardados */
 if(pageEl){

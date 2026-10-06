@@ -60,6 +60,8 @@
 
 /* Gesto: deslizar hacia arriba/abajo */
 .g-swipey .tuto-hand-in{animation:tutoSwipeY 2.8s cubic-bezier(.45,0,.2,1) infinite}
+.g-drag .tuto-hand-in{opacity:1;transform:rotate(-14deg) scale(.9)}
+.g-drag .tuto-ripple{opacity:.55;transform:scale(.7)}
 @keyframes tutoSwipeY{
   0%{transform:translate(14px,var(--sw,70px)) rotate(-14deg);opacity:0}
   12%{transform:translate(0,var(--sw,70px)) rotate(-14deg);opacity:1}

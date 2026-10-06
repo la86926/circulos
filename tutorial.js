@@ -123,14 +123,17 @@ const SONG_STEPS = [
     ring: '#tabModeWrap', radius: 16, pad: 5, hop: '#tabMode', hopY: '-4px', at: '#tabMode',
     tap: { sel: '#tabMode', ev: 'change' }, ok: '¡Cambiada!', onEnter: () => instOn('guitar', true), onExit: instBack },
   { title: 'El teclado flotante',
-    text: 'En piano aparece este teclado: la tecla que suena se pinta de rosado. Arrástralo con el dedo a donde quieras, agrándalo o achícalo con dos dedos, y quítalo con la X.',
-    ring: '#kbFloat', radius: 20, pad: 4, at: '#kbFloat .kb-grip', gesture: 'swipe',
-    onEnter: () => { instOn('piano', true); const k = $('#tabKb'); if (k && !k.checked) { k.checked = true; k.dispatchEvent(new Event('change')); } },
-    onExit: instBack },
+    text: 'En piano aparece este teclado y la tecla que suena se pinta de rosado. Mira: se arrastra con el dedo a donde quieras y se agranda o achica con dos dedos. Con la X lo quitas.',
+    ring: '#kbFloat', radius: 20, pad: 4, at: '#kbFloat .kb-grip', gesture: 'drag',
+    onEnter: () => { instOn('piano', true); const k = $('#tabKb'); if (k && !k.checked) { k.checked = true; k.dispatchEvent(new Event('change')); }
+      const t = token; setTimeout(() => { if (active && t === token) window.CirculosTablatura?.kbDemo(true); }, 750); },
+    onExit: () => { window.CirculosTablatura?.kbDemo(false); instBack(); } },
   { title: 'El botón flotante',
-    text: 'Al bajar por la partitura aparece este botón a la izquierda: tócalo para dar Play o Pausa sin volver arriba. También puedes arrastrarlo a donde quieras.',
-    ring: '#tabFab button', radius: 32, pad: 4, hop: '#tabFab button', hopY: '-5px', at: '#tabFab button',
-    tap: { sel: '#tabFab button' }, ok: '¡Así de fácil!', onEnter: fabShow },
+    text: 'Al bajar por la partitura aparece este botón a la izquierda. Mira: lo puedes arrastrar a donde quieras. Tócalo para dar Play o Pausa sin volver arriba.',
+    ring: '#tabFab button', radius: 32, pad: 4, at: '#tabFab button', gesture: 'drag',
+    tap: { sel: '#tabFab button' }, ok: '¡Así de fácil!',
+    onEnter: () => { fabShow(); const t = token; setTimeout(() => { if (active && t === token) window.CirculosTablatura?.fabDemo(true); }, 1100); },
+    onExit: () => window.CirculosTablatura?.fabDemo(false) },
   { modal: true, title: '¡Listo para tocar!',
     text: 'Pausa cuando quieras: al dar Play otra vez, sigue desde la nota donde te quedaste. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
     next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap',
@@ -387,7 +390,7 @@ function setBox(el, x, y, w, h) {
 function setGesture(g) {
   if (handEl.dataset.g === g) return;
   handEl.dataset.g = g;
-  handEl.classList.remove('g-tap', 'g-swipe', 'g-swipey');
+  handEl.classList.remove('g-tap', 'g-swipe', 'g-swipey', 'g-drag');
   handEl.classList.add('g-' + g);
 }
 function gestureOf(s) { return (typeof s.gesture === 'function' ? s.gesture() : s.gesture) || 'tap'; }
