@@ -122,7 +122,7 @@ function renderLib(){
   $('tabLibSub').textContent=`${n} ${n===1?'PDF':'PDF'} · ${F?.nick?`también en tu ID «${F.nick}»`:'guardados en este dispositivo'}`;
   $('tabLibList').innerHTML=lib.map(e=>`<div class="lib-row${e.id===curId?' is-current':''}${e.id===freshId?' is-fresh'+(freshEnter?' is-enter':''):''}" role="listitem">
       <button class="lib-open" type="button" data-open="${e.id}">
-        <span class="lib-icon">${ICON_DOC}</span>
+        <span class="lib-icon"><img src="icon-partitura.webp" width="46" height="46" alt=""></span>
         <span class="lib-text"><strong>${e.id===freshId?'<span class="lib-new">Nuevo</span>':''}${esc(dispName(e))}</strong><small>${e.id===curId?'<b class="lib-now">Abierta</b> · ':''}${e.songs} ${e.songs===1?'canción':'canciones'} · ${fmtDate(e.added)}${!e.local?` · <span class="lib-cloud">${ICON_CLOUD}en tu ID</span>`:''}</small></span>
         <svg class="lib-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
       </button>
