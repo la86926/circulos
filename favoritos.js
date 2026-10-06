@@ -54,23 +54,25 @@ const KEY_MOVED='circulos-moved-to',KEY_MOVED_NICK='circulos-moved-nick';
    viaja a los demás dispositivos de ese ID. Sin ID, nada de esto sale del dispositivo. */
 const KEY_CONV='circulos-conv',KEY_CONV_ID='circulos-conv-id',KEY_BOOK='circulos-libro',KEY_BOOKS='circulos-libros',BOOK_PREFIX='circuloslibro-',PART=700000;
 let books=null;                    // «Mis partituras» del ID: [{id,parts,name,songs,at}]
-/* Velocidad que se dejó en cada canción del Convertidor (tablatura.js la guarda en «tab-tempos») */
-const KEY_TEMPOS='tab-tempos',KEY_TEMPOS_AT='tab-tempos-at';
-const temposAt=()=>Number(store.get(KEY_TEMPOS_AT))||0;
-const remoteTemposAt=d=>Number(d&&d.l1&&d.l1.storage&&d.l1.storage[KEY_TEMPOS_AT])||0;
+/* Ajustes del Convertidor que viajan con el ID: velocidad de cada canción y lugar/tamaño del teclado.
+   Cada uno guarda su hora; gana el más reciente. */
+const SYNCED=[{key:'tab-tempos',at:'tab-tempos-at',ev:'circulos:tempos'},{key:'tab-kb-place',at:'tab-kb-place-at',ev:'circulos:kb'}];
+const localAtOf=k=>Number(store.get(k.at))||0;
+const remoteAtOf=(d,k)=>Number(d&&d.l1&&d.l1.storage&&d.l1.storage[k.at])||0;
 const sessionConv=()=>{try{return sessionStorage.getItem('circulos-convertidor')==='1';}catch(e){return false;}};
 const convOn=()=>!!nick&&(store.get(KEY_CONV_ID)===nick.toLowerCase()||sessionConv());
-function readExtras(d){
+function readExtras(d,{skipBooks=false}={}){
   const st=d&&d.l1&&d.l1.storage;if(!st)return;
   if(st[KEY_CONV]==='1'&&nick){
     const was=store.get(KEY_CONV_ID)===nick.toLowerCase();
     store.set(KEY_CONV_ID,nick.toLowerCase());
     if(!was)document.dispatchEvent(new CustomEvent('circulos:conv-unlock'));
   }
-  if(typeof st[KEY_TEMPOS]==='string'&&remoteTemposAt(d)>temposAt()){   // velocidades más recientes en otro dispositivo
-    store.set(KEY_TEMPOS,st[KEY_TEMPOS]);store.set(KEY_TEMPOS_AT,String(remoteTemposAt(d)));
-    document.dispatchEvent(new CustomEvent('circulos:tempos'));
+  for(const k of SYNCED)if(typeof st[k.key]==='string'&&remoteAtOf(d,k)>localAtOf(k)){   // más reciente en otro dispositivo
+    store.set(k.key,st[k.key]);store.set(k.at,String(remoteAtOf(d,k)));
+    document.dispatchEvent(new CustomEvent(k.ev));
   }
+  if(skipBooks)return;
   let list=null;
   try{
     if(typeof st[KEY_BOOKS]==='string')list=st[KEY_BOOKS]?JSON.parse(st[KEY_BOOKS]):[];
@@ -93,7 +95,7 @@ async function firebase(){
   fb={db:fs.getFirestore(app),fs};
   return fb;
 }
-function setCloud(state,text=''){cloud={state,text};refreshSheet();}
+function setCloud(state,text=''){cloud={state,text};refreshSheet();refreshIdItem();}
 function merge(remote,local){
   const out=[...remote],ids=new Set(remote.map(keyOf));
   local.forEach(f=>{if(!ids.has(keyOf(f)))out.push(f);});
@@ -138,28 +140,136 @@ async function connect(name,{silent=false,mode=''}={}){
     store.set(KEY_NICK,moved.nick);return connect(moved.nick,{silent:true});
   }
   const remote=docExists&&!moved?readRemote(snap.data()):null;       // un ID que quedó libre se usa como nuevo
-  books=null;
-  if(mode==='enter'&&!remote){ref=null;setCloud('off');throw new Error(`No existe el ID «${name}». Si es la primera vez, toca Crear.`);}
-  if(mode==='create'&&remote){ref=null;setCloud('off');throw new Error(`El ID «${name}» ya existe. Si es tuyo, toca Entrar; si no, elige otro.`);}
+  const d=remote?snap.data():null;
+  if(mode==='enter'&&!remote){ref=null;setCloud(nick?'error':'off');throw new Error(`No existe el ID «${name}». Si es la primera vez, toca Crear.`);}
+  if(mode==='create'&&remote){ref=null;setCloud(nick?'error':'off');throw new Error(`El ID «${name}» ya existe. Si es tuyo, toca Entrar; si no, elige otro.`);}
   const firstTimeHere=store.get(KEY_SYNCED)!==id;
-  nick=name;store.set(KEY_NICK,nick);
-  if(remote)readExtras(snap.data());
-  const needConv=convOn()&&!(remote&&snap.data().l1?.storage?.[KEY_CONV]==='1');
-  const needTempos=temposAt()>remoteTemposAt(snap.data());
-  if(!remote){await upload();}                                       // ID nuevo: sube lo de este dispositivo
-  else if(firstTimeHere){                                            // primera vez en este dispositivo: se juntan ambos
-    const joined=merge(remote.list,favs),changed=joined.length!==remote.list.length;
-    favs=joined;store.set(KEY_AT,String(changed?Date.now():remote.at));saveLocal();
-    if(changed)await upload();
+  await tagOwners((store.get(KEY_SYNCED)||'').slice(DOC_PREFIX.length));
+  /* Primera vez con este ID en este dispositivo y hay cosas en los dos lados: la persona elige */
+  let choice='';
+  if(remote&&firstTimeHere&&!silent){
+    const mine={favs:favs.length,pdfs:(await localLib()).filter(e=>e.local).length};
+    const theirs={favs:remote.list.length,pdfs:remoteBooks(d).length};
+    if((mine.favs||mine.pdfs)&&(theirs.favs||theirs.pdfs)){
+      choice=await askChoice(name,mine,theirs);
+      if(!choice){ref=null;setCloud(nick?'ok':'off');if(nick)reconnect();throw Object.assign(new Error(''),{cancelled:true});}
+    }else choice=(mine.favs||mine.pdfs)?'device':'cloud';
   }
+  nick=name;store.set(KEY_NICK,nick);books=null;
+  if(choice==='cloud'){                                              // se usa lo del ID: lo de aquí se reemplaza
+    favs=remote.list;store.set(KEY_AT,String(remote.at||Date.now()));saveLocal();
+    SYNCED.forEach(k=>store.del(k.at));
+    await clearLocalLib();
+  }else if(choice==='device'){                                       // se usa lo de aquí: reemplaza lo del ID
+    store.set(KEY_AT,String(Date.now()));
+    SYNCED.forEach(k=>{if(store.get(k.key))store.set(k.at,String(Date.now()));});
+  }
+  if(remote)readExtras(d,{skipBooks:choice==='device'});
+  if(choice==='device'){books=[];await forgetCloudIds();}
+  const needConv=convOn()&&!(remote&&d.l1?.storage?.[KEY_CONV]==='1');
+  const needSynced=SYNCED.some(k=>localAtOf(k)>remoteAtOf(d,k));
+  if(!remote||choice==='device')await upload();                       // ID nuevo, o lo de aquí reemplaza al ID
+  else if(choice==='cloud'){}
   else if(remote.at>=localAt())applyRemote(remote);                  // la nube es más reciente
   else await upload();                                               // este dispositivo es más reciente
-  if(remote&&(needConv||needTempos))await upload();                  // contraseña o velocidades puestas aquí antes de entrar con el ID
+  if(remote&&choice!=='device'&&(needConv||needSynced))await upload();
   store.set(KEY_SYNCED,id);
-  if(!remote){books=[];document.dispatchEvent(new CustomEvent('circulos:cloud-books',{detail:books}));}
+  if(!remote||choice==='device'){books=books||[];document.dispatchEvent(new CustomEvent('circulos:cloud-books',{detail:books}));}
   listen();
   setCloud('ok');
-  if(!silent)toast(remote?`¡Hola, ${nick}! Tus acordes ya están aquí.`:`Listo, creaste el ID «${nick}». Tus acordes se guardan en la nube.`);
+  pushLocalBooks();                                                   // los PDF que solo están aquí suben al ID
+  if(!silent)toast(remote?`¡Hola, ${nick}! Todo quedó sincronizado.`:`Listo, creaste el ID «${nick}». Todo lo de este dispositivo quedó guardado en él.`);
+}
+
+/* ───────── Mis partituras guardadas en este dispositivo (misma base que tablatura.js) ───────── */
+const LIBDB={
+  open(){return new Promise((ok,no)=>{const r=indexedDB.open('circulos-tablatura',1);r.onupgradeneeded=()=>r.result.createObjectStore('books');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});},
+  async get(k){try{const db=await this.open();return await new Promise(ok=>{const q=db.transaction('books').objectStore('books').get(k);q.onsuccess=()=>ok(q.result??null);q.onerror=()=>ok(null);});}catch(e){return null;}},
+  async set(k,v){try{const db=await this.open();await new Promise(ok=>{const t=db.transaction('books','readwrite');t.objectStore('books').put(v,k);t.oncomplete=ok;t.onerror=ok;});}catch(e){}},
+  async del(k){try{const db=await this.open();await new Promise(ok=>{const t=db.transaction('books','readwrite');t.objectStore('books').delete(k);t.oncomplete=ok;t.onerror=ok;});}catch(e){}}
+};
+async function localLib(){
+  let idx=await LIBDB.get('index');
+  if(!Array.isArray(idx)){                                          // aún con el formato anterior (un solo PDF)
+    const last=await LIBDB.get('last');idx=[];
+    if(last&&last.songs&&last.songs.length){const id=Date.now().toString(36)+'m';idx.push({id,name:last.name,songs:last.songs.length,size:last.size||0,added:Date.now(),local:true});await LIBDB.set('book:'+id,last);await LIBDB.set('current',id);}
+    await LIBDB.set('index',idx);await LIBDB.del('last');
+  }
+  return idx;
+}
+const libReset=()=>document.dispatchEvent(new CustomEvent('circulos:lib-reset'));
+const ownedHere=e=>!!e.cloudId&&e.owner===nick.toLowerCase();
+async function tagOwners(prev){                                    // PDF subidos antes de guardar a qué ID pertenecen
+  if(!prev)return;
+  const idx=await localLib();let n=0;
+  idx.forEach(e=>{if(e.cloudId&&!e.owner){e.owner=prev;n++;}});
+  if(n){await LIBDB.set('index',idx);libReset();}
+}
+async function clearLocalLib(){
+  const idx=await localLib();
+  for(const e of idx)await LIBDB.del('book:'+e.id);
+  await LIBDB.set('index',[]);await LIBDB.del('current');libReset();
+}
+async function forgetCloudIds(){                                   // lo de aquí se subirá de nuevo a este ID
+  const idx=await localLib();
+  idx.forEach(e=>{delete e.cloudId;delete e.parts;delete e.seen;delete e.owner;});
+  await LIBDB.set('index',idx.filter(e=>e.local));libReset();
+}
+const inflight=new Set();
+/* Sube un PDF de Mis partituras al ID (si aún no está en él) y lo marca en la lista del dispositivo */
+async function uploadEntry(entryId){
+  if(!nick||inflight.has(entryId))return null;
+  const e=(await localLib()).find(x=>x.id===entryId);
+  if(!e||!e.local||ownedHere(e))return null;
+  inflight.add(entryId);
+  try{
+    const b=await LIBDB.get('book:'+entryId);if(!b)return null;
+    const m=await saveBook(b,{title:e.title});if(!m)return null;
+    const idx=await localLib(),x=idx.find(y=>y.id===entryId);
+    if(x){x.cloudId=m.id;x.parts=m.parts;x.seen=true;x.owner=nick.toLowerCase();await LIBDB.set('index',idx);}
+    return {...m,owner:nick.toLowerCase()};
+  }finally{inflight.delete(entryId);}
+}
+async function pushLocalBooks(){
+  if(!nick)return;
+  let n=0;
+  try{for(const e of await localLib())if(e.local&&!ownedHere(e)&&await uploadEntry(e.id))n++;}
+  catch(err){console.error('Favoritos:',err);}
+  if(n){libReset();}
+}
+function remoteBooks(d){
+  const st=d&&d.l1&&d.l1.storage;if(!st)return [];
+  try{if(typeof st[KEY_BOOKS]==='string')return st[KEY_BOOKS]?JSON.parse(st[KEY_BOOKS]):[];if(st[KEY_BOOK])return [JSON.parse(st[KEY_BOOK])];}catch(e){}
+  return [];
+}
+/* Ventana: ¿lo de tu ID o lo de este dispositivo? (con confirmación si se reemplaza lo del ID) */
+const ICON_CLOUD2='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.2a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 9.5 4.5 4.5 0 0 0 7 18.5Z"/></svg>';
+const ICON_PHONE='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.5 18.5h3"/></svg>';
+const ICON_WARN='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>';
+const countTxt=c=>[c.favs?`${c.favs} ${c.favs===1?'acorde':'acordes'}`:'',c.pdfs?`${c.pdfs} PDF`:''].filter(Boolean).join(' · ')||'Vacío';
+function askChoice(name,mine,theirs){
+  return new Promise(done=>{
+    const el=document.createElement('div');el.className='app-sheet id-choice';
+    const step1=`<div class="idc-box"><h2>¿Qué quieres usar?</h2></div>
+      <button class="idc-opt" type="button" data-pick="cloud"><span class="idc-ic is-cloud">${ICON_CLOUD2}</span><span class="idc-txt"><strong>Lo de tu ID «${escapeHtml(name)}»</strong><small>${countTxt(theirs)}</small></span></button>
+      <button class="idc-opt" type="button" data-pick="device"><span class="idc-ic">${ICON_PHONE}</span><span class="idc-txt"><strong>Lo de este dispositivo</strong><small>${countTxt(mine)}</small></span></button>
+      <button class="idc-cancel" type="button" data-pick="">Cancelar</button>`;
+    const step2=`<div class="idc-box"><span class="idc-warn">${ICON_WARN}</span><h2>¿Reemplazar lo de tu ID?</h2><p>Se borra lo que tenía «${escapeHtml(name)}».</p></div>
+      <button class="idc-danger" type="button" data-pick="device!">Reemplazar</button>
+      <button class="idc-cancel" type="button" data-back>Volver</button>`;
+    el.innerHTML=`<div class="app-sheet-backdrop"></div><section class="app-sheet-card idc-card" role="dialog" aria-modal="true">${step1}</section>`;
+    document.body.appendChild(el);
+    const card=el.querySelector('.idc-card');
+    const finish=v=>{el.classList.remove('open');setTimeout(()=>el.remove(),300);done(v);};
+    el.addEventListener('click',ev=>{
+      if(ev.target.closest('[data-back]')){card.innerHTML=step1;return;}
+      const b=ev.target.closest('[data-pick]');if(!b)return;
+      const v=b.dataset.pick;
+      if(v==='device'){card.innerHTML=step2;return;}
+      finish(v==='device!'?'device':v);
+    });
+    requestAnimationFrame(()=>el.classList.add('open'));
+  });
 }
 function listen(){
   if(!ref||!fb)return;
@@ -191,7 +301,7 @@ async function upload(){
   const storage={[KEY_FAVS]:JSON.stringify(favs),[KEY_AT]:String(at)};
   if(convOn())storage[KEY_CONV]='1';
   if(books){storage[KEY_BOOKS]=JSON.stringify(books);storage[KEY_BOOK]='';}
-  if(temposAt()){storage[KEY_TEMPOS]=store.get(KEY_TEMPOS)||'{}';storage[KEY_TEMPOS_AT]=String(temposAt());}
+  for(const k of SYNCED)if(localAtOf(k)){storage[k.key]=store.get(k.key)||'{}';storage[k.at]=String(localAtOf(k));}
   const l1={storage,page:{}};
   const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
   const full=()=>fs.setDoc(ref,{l1,l2:{storage:{},page:{}},...meta});
@@ -346,7 +456,7 @@ const grid=document.getElementById('chordCatalogGrid');
 
 /* ───────── Página "Favoritos" (favoritos.html) ─────────
    En las demás páginas, «Favoritos» del menú lleva a esta página. */
-const pageEl=document.getElementById('favView');
+const pageEl=document.getElementById('favView')||document.getElementById('idView');   // Favoritos o Mi ID
 let sheet=null,favTab='guitar';
 const instOf=f=>f.k&&f.k[0]==='p'?'piano':'guitar';
 function bindFav(root){
@@ -357,7 +467,7 @@ function bindFav(root){
     if(!e.target.closest('#favAccount'))return;
     e.preventDefault();const input=root.querySelector('#favNick'),msg=root.querySelector('.fav-error');
     const mode=(e.submitter&&e.submitter.dataset.mode)||'enter';
-    try{msg.textContent='';await connect(input.value,{mode});}catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo conectar. Revisa tu internet.');if(nick)setCloud('error',errorText(err));else setCloud('off');}
+    try{msg.textContent='';await connect(input.value,{mode});}catch(err){if(err.cancelled){msg.textContent='';return;}console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo conectar. Revisa tu internet.');if(nick)setCloud('error',errorText(err));else setCloud('off');}
   });
   root.addEventListener('click',e=>{if(e.target.closest('[data-signout]'))signOut();if(e.target.closest('[data-rename]'))openRename();});
   root.addEventListener('click',e=>{const t=e.target.closest('[data-fav-tab]');if(t){favTab=t.dataset.favTab;refreshSheet();}});
@@ -401,8 +511,10 @@ function openRename(){
 }
 function refreshSheet(){
   if(!sheet)return;
+  refreshSummary();
   const acc=sheet.querySelector('#favAccount');
-  if(nick){
+  if(!acc){}
+  else if(nick){
     const label={ok:'Sincronizado · se actualiza solo en tus dispositivos',busy:cloud.text||'Conectando…',error:cloud.text||'Sin conexión: guardado en este dispositivo',off:''}[cloud.state];
     acc.innerHTML=`<div class="fav-user"><span class="fav-dot is-${cloud.state}"></span><div><small class="fav-id-label">Tu ID</small><strong>${escapeHtml(nick)}</strong><small>${label}</small></div></div>
       <div class="fav-actions fav-actions-2"><button type="button" class="fav-btn" data-rename>${ICON_EDIT}Cambiar ID</button><button type="button" class="fav-btn" data-signout>${ICON_OUT}Salir</button></div>`;
@@ -413,6 +525,7 @@ function refreshSheet(){
       <p class="fav-error" role="alert"></p></form>`;
   }
   const g=sheet.querySelector('#favGrid'),L=lib();
+  if(!g)return;
   sheet.querySelectorAll('[data-fav-tab]').forEach(b=>{const on=b.dataset.favTab===favTab,n=favs.filter(f=>instOf(f)===b.dataset.favTab).length;
     b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));b.querySelector('.fav-count').textContent=n?`(${n})`:'';});
   const list=favs.filter(f=>instOf(f)===favTab);
@@ -422,16 +535,40 @@ function refreshSheet(){
   markCards(g);
 }
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function refreshAll(){markHearts();markCards();refreshSheet();}
+function refreshAll(){markHearts();markCards();refreshSheet();refreshIdItem();}
+/* Mi ID: lo que se guarda con el ID (acordes, PDF y velocidades) */
+let sumTimer=0;
+function refreshSummary(){
+  const box=sheet&&sheet.querySelector('#idSummary');if(!box)return;
+  clearTimeout(sumTimer);
+  sumTimer=setTimeout(async()=>{
+    const pdfs=(await localLib()).length;
+    let speeds=0;try{speeds=Object.keys(JSON.parse(store.get('tab-tempos')||'{}')).length;}catch(e){}
+    const row=(ic,t,n,href)=>`<a class="ids-row" href="${href}"><span class="ids-ic">${ic}</span><span class="ids-t">${t}</span><span class="ids-n">${n}</span><svg class="ids-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`;
+    box.innerHTML=`<p class="ids-head">${nick?`Se sincroniza con «${escapeHtml(nick)}»`:'Guardado solo en este dispositivo'}</p>
+      <div class="ids-list">${row(ICON_FAV,'Favoritos',favs.length,'favoritos.html')}${row('<img src="icon-partitura.webp" alt="">','Mis partituras',pdfs,'tablatura.html')}${row('<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 13V9M9.5 2.5h5"/></svg>','Velocidades guardadas',speeds,'tablatura.html')}</div>`;
+  },30);
+}
 
 const ICON_FAV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5s-6.8-4.1-8.4-8.4C2.6 8.2 4.5 5.3 7.5 5.3c1.8 0 3.3 1 4.5 2.6 1.2-1.6 2.7-2.6 4.5-2.6 3 0 4.9 2.9 3.9 5.8-1.6 4.3-8.4 8.4-8.4 8.4Z"/></svg>';
+/* «Mi ID» arriba de todo en el menú */
+const ICON_ID='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4c1.3-2.3 3.4-3.5 5.8-3.5s4.5 1.2 5.8 3.5"/></svg>';
+const onIdPage=!!document.getElementById('idView');
+(()=>{const picker=document.querySelector('.app-picker');if(!picker||document.getElementById('idMenuItem'))return;
+  const a=document.createElement('a');a.id='idMenuItem';a.href='mi-id.html';a.className='app-choice app-extra'+(onIdPage?' active':'');
+  if(onIdPage)a.setAttribute('aria-current','page');
+  a.innerHTML=`<span class="app-choice-icon">${ICON_ID}</span><strong>Mi ID</strong><small></small>`;
+  picker.appendChild(a);})();
+function refreshIdItem(){const sm=document.querySelector('#idMenuItem small');if(sm)sm.textContent=nick?`Tu ID: ${nick}`:'Crea tu ID y sincroniza tus dispositivos.';}
+refreshIdItem();
+
 /* «Favoritos» en el menú: un enlace a su página, igual que Círculos y Acordes */
 (()=>{const picker=document.querySelector('.app-picker');if(!picker||document.getElementById('favMenuItem'))return;
-  const a=document.createElement('a');a.id='favMenuItem';a.href='favoritos.html';a.className='app-choice app-extra'+(pageEl?' active':'');
-  if(pageEl)a.setAttribute('aria-current','page');
+  const a=document.createElement('a');a.id='favMenuItem';a.href='favoritos.html';a.className='app-choice app-extra'+(document.getElementById('favView')?' active':'');
+  if(document.getElementById('favView'))a.setAttribute('aria-current','page');
   a.innerHTML=`<span class="app-choice-icon">${ICON_FAV}</span><strong>Favoritos</strong><small>Tus acordes guardados, en todos tus dispositivos.</small>`;
   picker.appendChild(a);})();
-window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,renameBook,syncSoon,get books(){return books;}};
+window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,renameBook,syncSoon,uploadEntry,pushLocalBooks,get books(){return books;}};
 
 /* En la página de Favoritos: dibuja la cuenta, las pestañas y los acordes guardados */
 if(pageEl){

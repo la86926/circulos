@@ -7,13 +7,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="description" content="Biblioteca visual de acordes de guitarra.">
+<meta name="description" content="Tu ID para tener tus acordes y partituras en todos tus dispositivos.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Acordes · Círculos Music">
-<meta property="og:description" content="Biblioteca visual de más de 900 acordes de guitarra con todas sus posiciones.">
+<meta property="og:title" content="Mi ID · Círculos Music">
+<meta property="og:description" content="Tu ID para tener tus acordes y partituras en todos tus dispositivos.">
 <meta property="og:image" content="https://la86926.github.io/Circulos-music/og-image.png?v=4">
 <meta name="twitter:card" content="summary_large_image">
-<title>Acordes · Círculos Music</title>
+<title>Mi ID · Círculos Music</title>
 <link rel="icon" href="logo.svg?v=3" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
@@ -44,35 +44,20 @@
   </div>
   <nav class="app-picker" aria-label="Herramientas">
     <a class="app-choice" href="index.html"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke-opacity=".35"/><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="4" r="1.7"/><circle cx="18.9" cy="8" r="1.7"/><circle cx="18.9" cy="16" r="1.7"/><circle cx="12" cy="20" r="1.7"/><circle cx="5.1" cy="16" r="1.7"/><circle cx="5.1" cy="8" r="1.7"/></svg></span><strong>Círculos</strong><small>Tonalidades, sus 7 acordes y posiciones.</small></a>
-    <a class="app-choice active" href="acordes.html" aria-current="page"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M10.67 4v16M15.33 4v16M20 4v16" stroke-opacity=".5"/><path d="M6 4h14" stroke-width="2.4"/><path d="M6 9h14M6 14h14M6 19h14" stroke-opacity=".3"/><circle class="dot" cx="10.67" cy="11.5" r="2"/><circle class="dot" cx="15.33" cy="16.5" r="2"/><circle class="dot" cx="20" cy="6.5" r="2"/></svg></span><strong>Acordes</strong><small>Biblioteca de acordes de guitarra y piano.</small></a>
+    <a class="app-choice" href="acordes.html"><span class="app-choice-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M10.67 4v16M15.33 4v16M20 4v16" stroke-opacity=".5"/><path d="M6 4h14" stroke-width="2.4"/><path d="M6 9h14M6 14h14M6 19h14" stroke-opacity=".3"/><circle class="dot" cx="10.67" cy="11.5" r="2"/><circle class="dot" cx="15.33" cy="16.5" r="2"/><circle class="dot" cx="20" cy="6.5" r="2"/></svg></span><strong>Acordes</strong><small>Biblioteca de acordes de guitarra y piano.</small></a>
   </nav>
   <gift-card-widget></gift-card-widget>
 </aside>
-<main class="container app-view" id="chordsView">
+<main class="container app-view" id="idView">
   <section class="hero library-hero">
     <div>
-      <h1>Biblioteca de acordes</h1>
+      <h1>Mi ID</h1>
     </div>
   </section>
-  <section class="panel chordlib-tools" aria-label="Herramientas de la biblioteca">
-    <div class="chordlib-tools-main">
-      <label class="chord-search" for="chordSearch">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input id="chordSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Busca Cmaj7, DO menor 7, F#m7…">
-      </label>
-      <div class="chord-notation"><span class="label">Nomenclatura</span><div class="segmented seg2"><button class="seg-btn active" data-library-notation="english" type="button">Inglés</button><button class="seg-btn" data-library-notation="latin" type="button">Latina</button></div></div>
-    </div>
-    <div class="chordlib-filter-row">
-      <div class="chord-filter-block"><span class="chord-filter-label">Nota</span><div class="chord-root-scroller" id="chordRootFilters" aria-label="Filtrar por nota"></div></div>
-      <label class="chord-filter-block"><span class="chord-filter-label">Familia</span><select class="chord-select" id="chordFamilyFilter"><option value="all">Todas las familias</option></select></label>
-    </div>
+  <section class="panel fav-page" aria-label="Tu ID">
+    <div class="fav-account" id="favAccount"></div>
   </section>
-  <section class="chordlib-results" aria-labelledby="chordCatalogTitle">
-    <div class="chord-results-head"><div class="results-title"><h2 id="chordCatalogTitle">Acordes</h2><div class="segmented seg2 lib-inst" role="group" aria-label="Instrumento"><button class="seg-btn active" type="button" data-library-inst="guitar" aria-pressed="true">Guitarra</button><button class="seg-btn" type="button" data-library-inst="piano" aria-pressed="false">Piano</button></div></div><button class="chord-reset" id="chordResetFilters" type="button">Limpiar filtros</button></div>
-    <div class="chord-catalog-grid" id="chordCatalogGrid" aria-live="polite"></div>
-    <div class="chord-empty" id="chordEmpty" hidden><strong>Sin coincidencias</strong><span>Prueba otra nota, familia o búsqueda.</span></div>
-    <button class="chord-load-more" id="chordLoadMore" type="button" hidden>Mostrar más</button>
-  </section>
+  <section class="panel fav-page id-summary" id="idSummary" aria-label="Lo que se guarda con tu ID"></section>
 </main>
 <div class="toast" id="toast" role="status"></div>
 <script src="shell.js?v=6"></script>

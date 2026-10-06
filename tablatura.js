@@ -186,14 +186,14 @@ async function renameBook(id,value){
   if(curId===id&&!$('tabListPanel').hidden)$('tabListTitle').textContent=dispName(e);
   toast(`Ahora se llama «${dispName(e)}»`);
   const F=window.CirculosFavs;
-  if(e.cloudId&&F?.nick)F.renameBook(e.cloudId,title).catch(err=>console.error('Tablatura:',err));
+  if(mine(e)&&F?.nick)F.renameBook(e.cloudId,title).catch(err=>console.error('Tablatura:',err));
 }
 $('tabLibBack').addEventListener('click',showLib);
 /* Eliminar: hoja de confirmación al estilo de iOS */
 let delSheet=null;
 function askDelete(id){
   const e=lib.find(x=>x.id===id);if(!e)return;
-  const F=window.CirculosFavs,cloud=!!(F?.nick&&e.cloudId);
+  const F=window.CirculosFavs,cloud=!!(F?.nick&&mine(e));
   if(!delSheet){
     delSheet=document.createElement('div');delSheet.className='app-sheet lib-sheet';delSheet.id='libSheet';
     delSheet.innerHTML=`<div class="app-sheet-backdrop" data-close></div>
@@ -218,7 +218,7 @@ async function removeBook(id,{fromCloud=false}={}){
   if(curId===id){curId=null;DB.del('current');if(book&&!$('tabSong').hidden)stop();book=null;}
   if(!fromCloud){
     const F=window.CirculosFavs;
-    if(e.cloudId&&F?.nick)F.removeBook(e.cloudId).catch(err=>console.error('Tablatura:',err));
+    if(mine(e)&&F?.nick)F.removeBook(e.cloudId).catch(err=>console.error('Tablatura:',err));
     toast(`Se eliminó «${dispName(e)}»`);
   }
   if(!$('tabLib').hidden||!lib.length||(fromCloud&&!book))showLib();
@@ -453,14 +453,17 @@ const KB=(()=>{
   el.innerHTML='<div class="kb-grip" aria-hidden="true"></div><button class="kb-close" type="button" aria-label="Quitar el teclado"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg></button><svg class="kb-svg" role="img" aria-label="Teclado de piano"></svg><span class="kb-resize" aria-hidden="true"></span>';
   document.body.appendChild(el);
   const svg=el.querySelector('.kb-svg'),WW=10,WH=42,BW=6.2,BH=26;
-  let lo=60,hi=72,flats=false,has=false,nWhite=8,st=null,lit=null,drawn='';
-  try{st=JSON.parse(store.get('tab-kb-pos2','null'));}catch(e){st=null;}
+  let lo=60,hi=72,flats=false,has=false,nWhite=8,st=null,lit=null,drawn='',lastSong=null,lastKind='';
+  /* Lugar y tamaño: uno para computadora y otro para celular; con ID viajan a los demás dispositivos */
+  const KIND=()=>innerWidth<700?'m':'d';
+  const readPlace=()=>{try{const p=JSON.parse(store.get('tab-kb-place')||'{}')||{};const v=p[KIND()];return v&&v.w?{...v}:null;}catch(e){return null;}};
+  st=readPlace();lastKind=KIND();
   const minW=()=>Math.min(140,innerWidth-16),maxW=()=>Math.max(innerWidth*1.6,1200);
   const clampW=w=>Math.max(minW(),Math.min(maxW(),w));
   function headerBottom(){const h=document.querySelector('.app-header');return h?h.getBoundingClientRect().bottom:60;}
   function defaults(){
     const aspect=nWhite*WW/WH,phone=innerWidth<700;
-    const w=phone?Math.max(170,innerWidth*.5):Math.min(innerWidth-16,920,Math.max(300,(innerHeight*.3-24)*aspect));   // celular: la mitad de la pantalla
+    const w=phone?Math.max(170,innerWidth*.5):Math.min(Math.max(310,(125-26)*aspect+20),innerWidth*.6);   // celular: la mitad de la pantalla; computadora: unos 310 × 125
     return{w,x:(innerWidth-w)/2,y:headerBottom()+8};}
   function place(){
     if(!st)st=defaults();
@@ -471,7 +474,16 @@ const KB=(()=>{
     st.y=Math.max(top,Math.min(innerHeight-h-4,st.y));el.style.transform=`translate3d(${st.x}px,${st.y}px,0)`;
   }
   let raf=0;const placeSoon=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;place();});};
-  const save=()=>store.set('tab-kb-pos2',JSON.stringify({x:Math.round(st.x),y:Math.round(st.y),w:Math.round(st.w)}));
+  function save(){
+    let p={};try{p=JSON.parse(store.get('tab-kb-place')||'{}')||{};}catch(e){p={};}
+    p[KIND()]={x:Math.round(st.x),y:Math.round(st.y),w:Math.round(st.w)};
+    store.set('tab-kb-place',JSON.stringify(p));store.set('tab-kb-place-at',String(Date.now()));
+    window.CirculosFavs?.syncSoon?.();
+  }
+  document.addEventListener('circulos:kb',()=>{                    // llegó desde otro dispositivo
+    if(pts.size||demoRaf)return;
+    const v=readPlace();if(v){st=v;if(!el.hidden)place();}
+  });
   function dots(cx,y0,d,step){let h='';for(let k=1;k<=Math.abs(d);k++)h+=`<circle class="kb-oct" cx="${cx}" cy="${d>0?y0-(k-1)*step:y0+(k-1)*step}" r=".85"/>`;return h;}
   function draw(){
     const whites=[];for(let m=lo;m<=hi;m++)if(!isBlack(m))whites.push(m);
@@ -491,6 +503,10 @@ const KB=(()=>{
   function setSong(midis,fl){
     if(!midis||!midis.length){has=false;refresh();return;}
     let a=Math.min(...midis),z=Math.max(...midis);while(isBlack(a))a--;while(isBlack(z))z++;
+    // en la computadora, al menos 12 teclas blancas (unos 310 × 125 por defecto); se agregan a los lados
+    const minWhite=KIND()==='d'?12:0;let nw=0;for(let m=a;m<=z;m++)if(!isBlack(m))nw++;
+    for(let up=true;nw<minWhite;up=!up){if(up){z++;while(isBlack(z))z++;}else{a--;while(isBlack(a))a--;}nw++;}
+    lastSong=[midis,fl];
     const key=a+'|'+z+'|'+fl+'|'+latin();
     if(key!==drawn){lo=a;hi=z;flats=fl;draw();drawn=key;}
     has=true;refresh();
@@ -541,7 +557,7 @@ const KB=(()=>{
     st.x=e.clientX-(e.clientX-st.x)*r;st.y=e.clientY-(e.clientY-st.y)*r;st.w=w;placeSoon();clearTimeout(el._t);el._t=setTimeout(save,300);
   },{passive:false});
   el.querySelector('.kb-close').addEventListener('click',()=>{$('tabKb').checked=false;refresh();});   // se quita solo en esta canción
-  addEventListener('resize',()=>{if(!el.hidden)placeSoon();});
+  addEventListener('resize',()=>{const k=KIND();if(k!==lastKind){lastKind=k;st=readPlace();if(lastSong)setSong(...lastSong);}if(!el.hidden)placeSoon();});
   /* Demostración para la guía: el teclado se mueve solo y luego crece y se achica, como si lo arrastraran */
   let demoRaf=0,demoOrig=null;
   const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
@@ -688,11 +704,23 @@ $('tabPrint').addEventListener('click',()=>{pause();print();});
 let cloudBusy=false,libReady=false;
 async function cloudSave(entry){
   const F=window.CirculosFavs;
-  if(!entry||!F?.nick||entry.cloudId)return;
-  const b=await DB.get('book:'+entry.id);if(!b)return;
-  try{const m=await F.saveBook(b,{title:entry.title});if(m){entry.cloudId=m.id;entry.parts=m.parts;entry.upAt=Date.now();await saveIndex();toast(`«${dispName(entry)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}}
-  catch(err){console.error('Tablatura:',err);toast('No se pudieron guardar tus partituras en la nube');}
+  if(!entry||!F?.nick||!F.uploadEntry)return;
+  try{
+    const m=await F.uploadEntry(entry.id);
+    if(m){Object.assign(entry,{cloudId:m.id,parts:m.parts,seen:true,owner:m.owner});await saveIndex();toast(`«${dispName(entry)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}
+  }catch(err){console.error('Tablatura:',err);toast('No se pudieron guardar tus partituras en la nube');}
 }
+const myId=()=>(window.CirculosFavs?.nick||'').toLowerCase();
+const mine=e=>!!e.cloudId&&e.owner===myId();
+/* favoritos.js cambió Mis partituras (otro ID, se eligió lo de la nube, se subieron PDF): se vuelve a leer */
+let libLoading=null;
+document.addEventListener('circulos:lib-reset',()=>{
+  libLoading=(async()=>{
+    await loadLib();
+    if(book&&!lib.some(x=>x.id===curId)){book=null;if(!$('tabListPanel').hidden||!$('tabSong').hidden)showLib();}
+    if(!$('tabLib').hidden||(!lib.length&&!$('tabLoad').hidden))showLib();
+  })().finally(()=>{libLoading=null;});
+});
 let queued=null;
 async function cloudSync(list){
   const F=window.CirculosFavs;
@@ -700,23 +728,24 @@ async function cloudSync(list){
   if(cloudBusy){queued=list;return;}                              // llegó otra versión mientras trabajaba: va después
   cloudBusy=true;
   try{
+    if(libLoading)await libLoading;
     const ids=new Set(list.map(m=>m.id));
     // borrados en otro dispositivo (solo los que la nube ya había confirmado alguna vez)
-    for(const e of lib.filter(x=>x.cloudId&&x.seen&&!ids.has(x.cloudId)))await removeBook(e.id,{fromCloud:true});
-    lib.forEach(e=>{if(e.cloudId&&ids.has(e.cloudId))e.seen=true;});
+    for(const e of lib.filter(x=>mine(x)&&x.seen&&!ids.has(x.cloudId)))await removeBook(e.id,{fromCloud:true});
+    let marked=false;
+    lib.forEach(e=>{if(e.cloudId&&ids.has(e.cloudId)&&(!e.seen||e.owner!==myId())){e.seen=true;e.owner=myId();marked=true;}});
+    if(marked)await saveIndex();
     let renamed=false;                                              // nombres cambiados en otro dispositivo
     for(const m of list){const e=lib.find(x=>x.cloudId===m.id);if(e&&(m.title||'')!==(e.title||'')){if(m.title)e.title=m.title;else delete e.title;renamed=true;}}
     if(renamed){await saveIndex();if(!$('tabLib').hidden)renderLib();const c=lib.find(x=>x.id===curId);if(c&&!$('tabListPanel').hidden)$('tabListTitle').textContent=dispName(c);}
     // nuevos en otro dispositivo: aparecen en la lista y se descargan
     let added=0;
-    for(const m of list)if(!lib.some(x=>x.cloudId===m.id)){lib.push({id:'c'+m.id,name:m.name,...(m.title?{title:m.title}:{}),songs:m.songs,size:0,added:m.at||Date.now(),local:false,cloudId:m.id,parts:m.parts||1,seen:true});added++;}
+    for(const m of list)if(!lib.some(x=>x.cloudId===m.id)){lib.push({id:'c'+m.id,name:m.name,...(m.title?{title:m.title}:{}),songs:m.songs,size:0,added:m.at||Date.now(),local:false,cloudId:m.id,parts:m.parts||1,seen:true,owner:myId()});added++;}
     lib.sort((a,b)=>(b.added||0)-(a.added||0));
     await saveIndex();
     if(added&&!$('tabLib').hidden)renderLib();
     if(added&&!book&&$('tabLib').hidden&&!$('tabLoad').hidden)showLib();
     if(added)toast(added===1?'Llegó 1 PDF desde tu ID':`Llegaron ${added} PDF desde tu ID`);
-    // los que solo están aquí: suben al ID
-    for(const e of lib.filter(x=>!x.cloudId&&x.local))await cloudSave(e);
     // descarga en segundo plano lo que aún no está en este dispositivo
     for(const e of lib.filter(x=>!x.local&&x.cloudId)){
       try{const b=await F.loadBook({id:e.cloudId,parts:e.parts||1});if(b){await DB.set('book:'+e.id,b);e.local=true;await saveIndex();if(!$('tabLib').hidden)renderLib();}}catch(err){console.error('Tablatura:',err);}

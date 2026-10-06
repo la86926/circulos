@@ -11,7 +11,8 @@ window.__circulosTutorial = true;
 const PAGE = document.getElementById('circlesView') ? 'circulos'
            : document.getElementById('chordsView') ? 'acordes'
            : document.getElementById('tabView') ? 'convertidor'
-           : document.getElementById('favView') ? 'favoritos' : null;
+           : document.getElementById('favView') ? 'favoritos'
+           : document.getElementById('idView') ? 'cuenta' : null;
 if (!PAGE) return;
 
 /* ───────── Ajustes ───────── */
@@ -235,7 +236,7 @@ const STEPS = {
       at: '.app-choice[href="acordes.html"]', onEnter: menuOpen, onExit: menuClose },
 
     { title: 'Favoritos',
-      text: 'Aquí están los acordes que guardaste. Crea tu ID (sin contraseña) y los verás en cualquier dispositivo donde entres con ese mismo ID.',
+      text: 'Aquí están los acordes que guardaste. Con tu ID, en «Mi ID» arriba del menú, los verás en todos tus dispositivos.',
       ring: '#favMenuItem', radius: 20, hop: '#favMenuItem', hopY: '-5px',
       at: '#favMenuItem', onEnter: menuOpen, onExit: menuClose },
 
@@ -298,7 +299,7 @@ const STEPS = {
       detail: true, onEnter: detailOpen, onExit: detailClose },
 
     { title: 'Favoritos',
-      text: 'Tus acordes guardados están en el menú. Crea tu ID (sin contraseña) y los verás en cualquier dispositivo donde entres con ese mismo ID.',
+      text: 'Tus acordes guardados están en el menú. Con tu ID, en «Mi ID» arriba del menú, los verás en todos tus dispositivos.',
       ring: '#favMenuItem', radius: 20, hop: '#favMenuItem', hopY: '-5px',
       at: '#favMenuItem', onEnter: menuOpen, onExit: menuClose },
 
@@ -316,9 +317,9 @@ const STEPS = {
   convertidor: [],          // se arma al empezar (convSteps)
   cancion: SONG_STEPS,
 
-  favoritos: [
-    { modal: true, title: 'Favoritos',
-      text: 'Tu cancionero: aquí quedan los acordes, las posiciones y las formas de piano que guardaste con el corazón.',
+  cuenta: [
+    { modal: true, title: 'Mi ID',
+      text: 'Con tu ID tienes tus favoritos, tus PDF y tus velocidades en todos tus dispositivos. No necesita contraseña.',
       next: 'Empezar', skip: 'Ahora no', at: '#tutoNext', gesture: 'tap' },
 
     { title: 'Tu ID', ring: '#favAccount', radius: 20, pad: 5,
@@ -328,6 +329,19 @@ const STEPS = {
           ? { text: 'Este es tu ID. Escríbelo en otro celular o computadora y toca «Entrar» para ver tus acordes allí. Con «Cambiar ID» eliges otro sin perder nada; «Salir» los deja solo en este dispositivo.', at: '#favAccount [data-rename]', gesture: 'tap', hop: '#favAccount .fav-btn', hopY: '-4px' }
           : { text: 'Escribe tu ID (letras y números, sin contraseña). Si es la primera vez toca «Crear»; si ya tienes uno, «Entrar». Con «Cambiar ID» lo reemplazas por otro.', at: '#favNick', gesture: 'tap', hop: '#favAccount .fav-btn', hopY: '-4px' };
       } },
+
+    { title: 'Lo que se guarda', text: 'Aquí ves lo que viaja con tu ID. Toca uno para ir a esa sección.',
+      ring: '#idSummary .ids-list', radius: 18, pad: 4, at: '#idSummary .ids-row', gesture: 'tap' },
+
+    { modal: true, title: '¡Listo!',
+      text: 'Cuando quieras repetir esta guía, toca el botón “?” o búscala en el menú.',
+      next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap' }
+  ],
+
+  favoritos: [
+    { modal: true, title: 'Favoritos',
+      text: 'Tu cancionero: aquí quedan los acordes, las posiciones y las formas de piano que guardaste con el corazón.',
+      next: 'Empezar', skip: 'Ahora no', at: '#tutoNext', gesture: 'tap' },
 
     { title: 'Guitarra o piano',
       text: 'Tus favoritos se separan por instrumento. Siempre empieza en Guitarra; toca Piano para ver los de piano. El número indica cuántos tienes en cada uno.',
@@ -630,7 +644,7 @@ function init() {
   });
   const forced = new URLSearchParams(location.search).has('tutorial');
   if (!forced && !SHOW_EVERY_VISIT && isDone()) return;
-  const ready = { circulos: '#circuloArmonico .harmony-wheel-node', acordes: '.chord-catalog-card', convertidor: '#tabView', favoritos: '#favAccount > *' }[PAGE];
+  const ready = { circulos: '#circuloArmonico .harmony-wheel-node', acordes: '.chord-catalog-card', convertidor: '#tabView', favoritos: '#favTabs', cuenta: '#favAccount > *' }[PAGE];
   let tries = 0;
   const timer = setInterval(() => {
     if (document.body.classList.contains('conv-locked') || $('#convSheet.open')) { tries = 0; return; }   // espera a la contraseña
