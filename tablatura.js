@@ -159,6 +159,7 @@ function openSong(i){
   $('tabSongInfo').textContent=[song.time&&`Compás ${song.time}`,`Tonalidad con ${song.fifths>0?song.fifths+' ♯':song.fifths<0?(-song.fifths)+' ♭':'sin alteraciones'} (${keyName(song.fifths)} mayor o su relativa menor)`,`páginas ${song.pages.join(', ')}`].filter(Boolean).join(' · ');
   history.replaceState(null,'','#'+(song.number??i));
   render();scrollTo({top:$('tabSong').offsetTop-80,behavior:'smooth'});
+  document.dispatchEvent(new CustomEvent('circulos:tabsong'));
 }
 let events=[];
 const instNow=()=>$('tabInst').value;
