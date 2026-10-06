@@ -71,7 +71,6 @@ const menuClose = () => { if ($('#sideMenu.open')) $('#menuCloseBtn')?.click(); 
 
 /* Convertidor de partituras: la guía cambia según lo que haya en pantalla (sin PDF, lista o canción abierta) */
 const tabState = () => !$('#tabSong')?.hidden ? 'song' : !$('#tabListPanel')?.hidden ? 'list' : 'load';
-const pianoNow = () => $('.tab-inst [data-inst].is-on')?.dataset.inst === 'piano';
 function convSteps() {
   const st = tabState();
   const intro = { modal: true, title: 'Convertidor de partituras',
@@ -91,28 +90,50 @@ function convSteps() {
       ring: '#tabList .tab-item', radius: 16, hop: '#tabList .tab-item', hopY: '-4px', at: '#tabList .tab-item',
       tap: { sel: '#tabList .tab-item' }, ok: '¡Abierta!' }];
 }
+/* Cambia de instrumento durante la guía y, al salir del paso, deja el que la persona tenía */
+let instPrev = null;
+const instNow = () => $('.tab-inst [data-inst].is-on')?.dataset.inst;
+function instOn(name, remember) {
+  const cur = instNow();
+  if (remember && instPrev === null) instPrev = cur;
+  if (cur !== name) $(`.tab-inst [data-inst="${name}"]`)?.click();
+}
+function instBack() { if (instPrev && instNow() !== instPrev) $(`.tab-inst [data-inst="${instPrev}"]`)?.click(); instPrev = null; }
+/* Baja un poco la página para que aparezca el botón flotante de Play/Pausa */
+function fabShow() {
+  const play = $('#tabPlay');
+  if (!play) return;
+  const y = play.getBoundingClientRect().bottom + scrollY + 40;
+  if (scrollY < y) scrollTo({ top: y, behavior: reduced.matches ? 'auto' : 'smooth' });
+}
 const SONG_STEPS = [
   { modal: true, title: 'Tu canción', text: 'Así se lee tu partitura. Te muestro los controles.',
     next: 'Empezar', skip: 'Ahora no', at: '#tutoNext', gesture: 'tap' },
   { title: 'Elige el instrumento', text: 'Guitarra, ukelele o piano: la partitura cambia al instante.',
     ring: '.tab-inst', radius: 20, hop: '.tab-inst [data-inst]', hopY: '-4px',
     at: '.tab-inst [data-inst]:not(.is-on)', tap: { sel: '.tab-inst [data-inst]' }, ok: '¡Cambiado!' },
-  { title: 'Escucha la melodía', text: 'Toca para escuchar. Vuelve a tocar para pausar; al seguir, continúa desde donde quedó.',
+  { title: 'Escucha la melodía', text: 'Toca para dar Play. Vuelve a tocar para pausar; al dar Play otra vez, continúa desde donde quedó.',
     ring: '#tabPlay', radius: 26, hop: '#tabPlay', hopY: '-4px', at: '#tabPlay', tap: { sel: '#tabPlay' }, ok: '¡Suena!' },
   { title: 'La velocidad', text: 'Desliza para tocar más lento o más rápido. Empieza en 100.',
     ring: '.tab-tempo', radius: 16, pad: 6, at: '#tabTempo', gesture: 'swipe', tap: { sel: '#tabTempo', ev: 'input' }, ok: '¡Ajustada!' },
   { title: 'Escucha desde una nota', text: 'Toca cualquier nota de la partitura y suena desde ahí. La nota que suena se marca en rosado.',
     ring: '#tabSheet .tab-line', radius: 14, at: '#tabSheet .tl-hit', tap: { sel: '.tl-hit' }, ok: '¡Desde ahí!' },
-  { variant() {
-      return pianoNow()
-        ? { title: 'El teclado', text: 'Muestra en rosado la tecla que suena. Arrástralo, agrándalo o achícalo con dos dedos, o quítalo con la X.',
-            ring: '#kbFloat', radius: 20, at: '#kbFloat .kb-svg', gesture: 'tap' }
-        : { title: 'Posición en el mástil', text: 'Elige dónde tocar: a la mitad del mástil, cerca de la cejuela o usando cuerdas al aire.',
-            ring: '#tabModeWrap', radius: 16, pad: 5, hop: '#tabMode', hopY: '-4px', at: '#tabMode', tap: { sel: '#tabMode', ev: 'change' }, ok: '¡Cambiada!' };
-    } },
+  { title: 'Posición en el mástil', text: 'En guitarra y ukelele eliges dónde tocar: a la mitad del mástil, cerca de la cejuela o usando cuerdas al aire.',
+    ring: '#tabModeWrap', radius: 16, pad: 5, hop: '#tabMode', hopY: '-4px', at: '#tabMode',
+    tap: { sel: '#tabMode', ev: 'change' }, ok: '¡Cambiada!', onEnter: () => instOn('guitar', true), onExit: instBack },
+  { title: 'El teclado flotante',
+    text: 'En piano aparece este teclado: la tecla que suena se pinta de rosado. Arrástralo con el dedo a donde quieras, agrándalo o achícalo con dos dedos, y quítalo con la X.',
+    ring: '#kbFloat', radius: 20, pad: 4, at: '#kbFloat .kb-grip', gesture: 'swipe',
+    onEnter: () => { instOn('piano', true); const k = $('#tabKb'); if (k && !k.checked) { k.checked = true; k.dispatchEvent(new Event('change')); } },
+    onExit: instBack },
+  { title: 'El botón flotante',
+    text: 'Al bajar por la partitura aparece este botón a la izquierda: tócalo para dar Play o Pausa sin volver arriba. También puedes arrastrarlo a donde quieras.',
+    ring: '#tabFab button', radius: 32, pad: 4, hop: '#tabFab button', hopY: '-5px', at: '#tabFab button',
+    tap: { sel: '#tabFab button' }, ok: '¡Así de fácil!', onEnter: fabShow },
   { modal: true, title: '¡Listo para tocar!',
-    text: 'Al bajar por la partitura aparece un botón redondo abajo a la izquierda para pausar o seguir; también puedes moverlo. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
-    next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap' }
+    text: 'Pausa cuando quieras: al dar Play otra vez, sigue desde la nota donde te quedaste. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
+    next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap',
+    onEnter: () => { const fab = $('#tabFab button'); if ($('#tabFab.is-on') && fab) fab.click(); } }
 ];
 
 const STEPS = {
