@@ -2,7 +2,7 @@
    Guarda la web en el dispositivo para que abra aunque no haya conexión.
    Páginas: primero la red (siempre lo más nuevo) y, sin conexión, la copia guardada.
    Archivos: la copia guardada al instante y se actualiza en segundo plano. */
-const VERSION='circulos-v18';
+const VERSION='circulos-v19';
 const CORE=[
   './','index.html','acordes.html','favoritos.html','mi-id.html','manifest.webmanifest',
   'style.css','shell.css','circulos.css','chords-library.css','polish.css','tutorial.css',

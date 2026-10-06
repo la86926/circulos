@@ -134,13 +134,18 @@ function analyzePage(raw){
     // ¿hay dos voces en el pentagrama? (melodía con plicas arriba y otra voz con plicas abajo)
     const twoVoices=cols.filter(c=>c.heads.some(h=>h.stem&&h.stem.dir==='up')&&c.heads.some(h=>h.stem&&h.stem.dir==='down')).length>=1;
     const midY=st.yBot+2*s;
-    // melodía: la nota más aguda de la voz de arriba en cada columna, con su duración
+    // melodía: en cada columna donde empieza una nota de la voz de arriba, la nota más aguda de todas las que suenan juntas.
+    // (En un acorde con notas vecinas, la de arriba se dibuja corrida al otro lado de la plica y parecía de otra voz.)
     const fills=raw.fills;
     const restsAll=own.filter(g=>/^r/.test(g.k));
     const melodyCols=[];
     for(const c of cols){
       const cand=twoVoices?c.heads.filter(h=>(h.stem&&h.stem.dir==='up')||(!h.stem&&(h.k==='w'||h.k==='w2'||h.k==='h'))):c.heads;
-      if(cand.length)melodyCols.push({x:c.x,h:cand.reduce((a,b)=>b.y>a.y?b:a)});
+      if(!cand.length)continue;
+      const high=(a,b)=>b.y>a.y?b:a,top=cand.reduce(high),withStem=cand.filter(h=>h.stem);
+      // h: la que suena; d: la que dice cuánto dura (si la de arriba quedó sin plica por estar corrida, la duración la da su vecina con plica)
+      const d=(top.stem||top.k==='w'||top.k==='w2'||!withStem.length)?top:withStem.reduce(high);
+      melodyCols.push({x:c.x,h:c.heads.reduce(high),d});
     }
     // silencios de la melodía
     for(const r of restsAll){
@@ -152,10 +157,10 @@ function analyzePage(raw){
     melodyCols.sort((a,b)=>a.x-b.x);
     sys.notes=melodyCols.map(c=>{
       if(c.rest){const dot=own.find(g=>g.k==='.'&&g.x>c.x&&g.x<c.x+2.6*s&&Math.abs(g.y-c.y)<1.2*s);return {x:c.x,y:midY,w:hw,rest:true,dur:c.dur==null?null:c.dur*(dot?1.5:1)};}
-      const h=c.h;
-      let dur={q:1,h:2,w:4,w2:8}[h.k]||1,beams=0;
-      if(h.k==='q'){
-        const stem=h.stem&&h.stem.seg,up=h.stem&&h.stem.dir==='up';
+      const h=c.h,dh=c.d||h;
+      let dur={q:1,h:2,w:4,w2:8}[dh.k]||1,beams=0;
+      if(dh.k==='q'){
+        const stem=dh.stem&&dh.stem.seg,up=dh.stem&&dh.stem.dir==='up';
         if(stem){
           const end=up?stem.y1:stem.y0;
           const bs=fills.filter(f=>!f.curve&&f.w>s&&f.h<2*s&&stem.x>=f.x0-0.8&&stem.x<=f.x1+0.8&&Math.abs((up?f.y1:f.y0)-end)<1.6*s+(up?0:0));
@@ -165,7 +170,7 @@ function analyzePage(raw){
         }
         dur=1/Math.pow(2,beams);
       }
-      const dot=own.find(g=>g.k==='.'&&g.x>h.x+hw*0.6&&g.x<h.x+hw+2.4*s&&Math.abs(g.y-h.y)<0.75*s);
+      const dot=[h,dh].some(n=>own.find(g=>g.k==='.'&&g.x>n.x+hw*0.6&&g.x<n.x+hw+2.4*s&&Math.abs(g.y-n.y)<0.75*s));
       if(dot)dur*=1.5;
       return {x:h.x,y:h.y,w:hw,midi:h.midi,D:h.D,alter:h.alter,dur,tied:false};
     });

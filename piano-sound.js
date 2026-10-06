@@ -13,7 +13,7 @@ const buffers=new Map(),voices=new Map();
 function context(){
   if(ctx)return ctx;
   try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}   // suena aunque el iPhone esté en silencio
-  ctx=new AC({latencyHint:'interactive'});
+  ctx=new AC({latencyHint:'interactive'});voices.clear();
   const comp=ctx.createDynamicsCompressor();                 // evita saturación cuando suenan varias notas
   comp.threshold.value=-14;comp.knee.value=18;comp.ratio.value=3;comp.attack.value=.004;comp.release.value=.25;
   out=ctx.createGain();out.gain.value=.9;out.connect(comp);comp.connect(ctx.destination);
@@ -27,7 +27,32 @@ function load(){
     .catch(err=>{loading=null;console.warn('Círculos Music: no se pudo cargar el sonido del piano',err);});
   return loading;
 }
-function unlock(){const c=context();if(c.state==='suspended')c.resume();load();}
+/* Al volver de otra pestaña o app, el navegador a veces deja el audio dormido ("suspended" o "interrupted")
+   o, en el iPhone, "running" pero con el reloj detenido y sin sonido. Se despierta y, si sigue mudo, se crea uno nuevo
+   (los sonidos ya cargados sirven igual). */
+let waking=null;
+function rebuild(){const old=ctx;ctx=null;out=null;try{old&&old.close();}catch(e){}return context();}
+function wake(){
+  const c=context();
+  if(waking)return waking;
+  const t0=c.currentTime;
+  waking=(async()=>{
+    if(c.state!=='running'){try{await Promise.race([c.resume(),new Promise(r=>setTimeout(r,400))]);}catch(e){}}
+    await new Promise(r=>setTimeout(r,120));
+    if(ctx===c&&(c.state!=='running'||c.currentTime===t0))rebuild().resume?.().catch(()=>{});   // sigue sin avanzar: uno nuevo
+  })().finally(()=>{waking=null;});
+  return waking;
+}
+let stale=false;                                               // se marca al irse de la página
+function unlock(){const c=context();if(stale||c.state!=='running'){stale=false;wake();}load();}
+document.addEventListener('visibilitychange',()=>{
+  if(!ctx)return;
+  if(document.hidden){stale=true;try{ctx.suspend();}catch(e){}}
+  else unlock();
+});
+addEventListener('pageshow',e=>{if(e.persisted&&ctx){stale=true;unlock();}});
+/* Cualquier toque o tecla sirve para terminar de despertarlo (el navegador solo lo permite con un gesto) */
+['pointerdown','keydown','touchend'].forEach(t=>addEventListener(t,()=>{if(ctx&&ctx.state!=='running'){try{ctx.resume();}catch(e){}}},{capture:true,passive:true}));
 
 function voice(midi,when,velocity){
   const root=ROOTS.reduce((a,b)=>Math.abs(b-midi)<Math.abs(a-midi)?b:a),buf=buffers.get(root);if(!buf)return;
@@ -45,8 +70,9 @@ function play(midis,{roll=0,velocity=.8}={}){
   unlock();
   const list=[].concat(midis).filter(Number.isFinite);if(!list.length)return;
   const asked=performance.now();
-  load()?.then(()=>{
-    if(performance.now()-asked>900)return;                    // si tardó mucho en cargar, mejor no sonar fuera de tiempo
+  Promise.all([load(),waking]).then(()=>{
+    if(performance.now()-asked>900||!ctx)return;              // si tardó mucho en cargar, mejor no sonar fuera de tiempo
+    if(ctx.state!=='running')wake();
     const t=ctx.currentTime+.012;
     list.forEach((m,i)=>voice(m,t+i*roll,velocity*(list.length>1?.82:1)));
   });
