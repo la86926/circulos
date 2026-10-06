@@ -88,6 +88,8 @@ function convSteps() {
       ring: '#tabLibList', radius: 20, pad: 4, at: '#tabLibList .lib-icon', gesture: 'tap' },
     { title: 'Agregar otro PDF', text: 'Con este botón agregas otro PDF a la lista. En la computadora también puedes soltarlo aquí.',
       ring: '#tabLibAdd', radius: 24, pad: 4, hop: '#tabLibAdd', hopY: '-4px', at: '#tabLibAdd', gesture: 'tap' },
+    { title: 'Cambiar el nombre', text: 'Con el lápiz le pones al PDF el nombre que quieras. Con tu ID, el nombre nuevo aparece en todos tus dispositivos.',
+      ring: '#tabLibList .lib-edit', radius: 24, pad: 4, hop: '#tabLibList .lib-edit', hopY: '-4px', at: '#tabLibList .lib-edit', gesture: 'tap' },
     { title: 'Eliminar un PDF', text: 'Con la papelera lo quitas de la lista. Antes de borrarlo te pide confirmar.',
       ring: '#tabLibList .lib-del', radius: 24, pad: 4, hop: '#tabLibList .lib-del', hopY: '-4px', at: '#tabLibList .lib-del', gesture: 'tap' },
     { title: 'Abre uno', text: 'Toca un PDF para ver sus canciones.',

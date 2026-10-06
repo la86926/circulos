@@ -26,6 +26,7 @@ const DB={
 let lib=[],curId=null,freshId=null,freshEnter=false;          // freshId: el PDF recién subido (se anima hasta abrir alguno)
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const prettyName=n=>String(n||'Partitura').replace(/\.pdf$/i,'');
+const dispName=e=>(e&&e.title)||prettyName(e&&e.name);            // el nombre que la persona le puso (o el del archivo)
 const saveIndex=()=>DB.set('index',lib);
 async function loadLib(){
   let idx=await DB.get('index');
@@ -106,6 +107,7 @@ libPanel.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){openL
 /* ───────── Mis partituras (vista) ───────── */
 const ICON_DOC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M10.5 17.5V11l4-1v6"/><circle cx="9.3" cy="17.6" r="1.3"/><circle cx="13.3" cy="16.1" r="1.3"/></svg>';
 const ICON_TRASH='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9.5 7V5.2c0-.7.5-1.2 1.2-1.2h2.6c.7 0 1.2.5 1.2 1.2V7M6.5 7l.8 11.6c.1 1 .9 1.9 2 1.9h5.4c1.1 0 1.9-.9 2-1.9L17.5 7M10.2 11v5.5M13.8 11v5.5"/></svg>';
+const ICON_EDIT='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5h4l10.2-10.2a2.1 2.1 0 0 0-3-3L5.5 16.5l-1 3Z"/><path d="M13.8 7.8l2.9 2.9"/></svg>';
 const ICON_CLOUD='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.2a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 9.5 4.5 4.5 0 0 0 7 18.5Z"/></svg>';
 const fmtDate=t=>{try{return new Intl.DateTimeFormat('es',{day:'numeric',month:'short',year:'numeric'}).format(new Date(t)).replace('.','');}catch(e){return '';}};
 function showLib(){
@@ -121,10 +123,11 @@ function renderLib(){
   $('tabLibList').innerHTML=lib.map(e=>`<div class="lib-row${e.id===curId?' is-current':''}${e.id===freshId?' is-fresh'+(freshEnter?' is-enter':''):''}" role="listitem">
       <button class="lib-open" type="button" data-open="${e.id}">
         <span class="lib-icon">${ICON_DOC}</span>
-        <span class="lib-text"><strong>${e.id===freshId?'<span class="lib-new">Nuevo</span>':''}${esc(prettyName(e.name))}</strong><small>${e.id===curId?'<b class="lib-now">Abierta</b> · ':''}${e.songs} ${e.songs===1?'canción':'canciones'} · ${fmtDate(e.added)}${!e.local?` · <span class="lib-cloud">${ICON_CLOUD}en tu ID</span>`:''}</small></span>
+        <span class="lib-text"><strong>${e.id===freshId?'<span class="lib-new">Nuevo</span>':''}${esc(dispName(e))}</strong><small>${e.id===curId?'<b class="lib-now">Abierta</b> · ':''}${e.songs} ${e.songs===1?'canción':'canciones'} · ${fmtDate(e.added)}${!e.local?` · <span class="lib-cloud">${ICON_CLOUD}en tu ID</span>`:''}</small></span>
         <svg class="lib-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
       </button>
-      <button class="lib-del" type="button" data-del="${e.id}" aria-label="Eliminar ${esc(prettyName(e.name))}">${ICON_TRASH}</button>
+      <button class="lib-edit" type="button" data-edit="${e.id}" aria-label="Cambiar el nombre de ${esc(dispName(e))}">${ICON_EDIT}</button>
+      <button class="lib-del" type="button" data-del="${e.id}" aria-label="Eliminar ${esc(dispName(e))}">${ICON_TRASH}</button>
     </div>`).join('');
   freshEnter=false;                                                  // la entrada se anima una sola vez
 }
@@ -145,8 +148,46 @@ async function openBook(id){
 }
 $('tabLibList').addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o){openBook(o.dataset.open);return;}
-  const d=e.target.closest('[data-del]');if(d)askDelete(d.dataset.del);
+  const d=e.target.closest('[data-del]');if(d){askDelete(d.dataset.del);return;}
+  const r=e.target.closest('[data-edit]');if(r)askRename(r.dataset.edit);
 });
+/* Cambiar el nombre: ventanita al estilo de iOS; con ID, el nombre nuevo llega a los demás dispositivos */
+let nameSheet=null;
+function askRename(id){
+  const e=lib.find(x=>x.id===id);if(!e)return;
+  if(!nameSheet){
+    nameSheet=document.createElement('div');nameSheet.className='app-sheet lib-sheet';nameSheet.id='libNameSheet';
+    nameSheet.innerHTML=`<div class="app-sheet-backdrop" data-close></div>
+      <section class="app-sheet-card lib-confirm" role="dialog" aria-modal="true" aria-labelledby="libNameTitle">
+        <form class="lib-confirm-box lib-name-form" autocomplete="off">
+          <span class="lib-confirm-icon is-blue">${ICON_EDIT}</span>
+          <h2 id="libNameTitle">Cambiar nombre</h2>
+          <p>Ponle un nombre fácil de reconocer. El archivo PDF original no cambia.</p>
+          <div class="lib-name-field"><input id="libNameInput" maxlength="60" autocapitalize="sentences" spellcheck="false" aria-label="Nombre"><button type="button" class="lib-name-clear" aria-label="Borrar">×</button></div>
+        </form>
+        <button class="lib-confirm-save" type="button">Guardar</button>
+        <button class="lib-confirm-cancel" type="button" data-close>Cancelar</button>
+      </section>`;
+    document.body.appendChild(nameSheet);
+    nameSheet.addEventListener('click',ev=>{if(ev.target.closest('[data-close]'))nameSheet.classList.remove('open');if(ev.target.closest('.lib-name-clear')){const i=nameSheet.querySelector('input');i.value='';i.focus();}});
+    nameSheet.querySelector('form').addEventListener('submit',ev=>{ev.preventDefault();nameSheet.querySelector('.lib-confirm-save').click();});
+  }
+  const input=nameSheet.querySelector('input');input.value=dispName(e);input.placeholder=prettyName(e.name);
+  nameSheet.querySelector('.lib-confirm-save').onclick=()=>{nameSheet.classList.remove('open');renameBook(id,input.value);};
+  requestAnimationFrame(()=>{nameSheet.classList.add('open');setTimeout(()=>{input.focus();input.select();},260);});
+}
+async function renameBook(id,value){
+  const e=lib.find(x=>x.id===id);if(!e)return;
+  const v=String(value||'').replace(/\s+/g,' ').trim().slice(0,60);
+  const title=v&&v!==prettyName(e.name)?v:'';                      // vacío = vuelve al nombre del archivo
+  if((e.title||'')===title)return;
+  if(title)e.title=title;else delete e.title;
+  await saveIndex();renderLib();
+  if(curId===id&&!$('tabListPanel').hidden)$('tabListTitle').textContent=dispName(e);
+  toast(`Ahora se llama «${dispName(e)}»`);
+  const F=window.CirculosFavs;
+  if(e.cloudId&&F?.nick)F.renameBook(e.cloudId,title).catch(err=>console.error('Tablatura:',err));
+}
 $('tabLibBack').addEventListener('click',showLib);
 /* Eliminar: hoja de confirmación al estilo de iOS */
 let delSheet=null;
@@ -164,7 +205,7 @@ function askDelete(id){
     document.body.appendChild(delSheet);
     delSheet.addEventListener('click',ev=>{if(ev.target.closest('[data-close]'))delSheet.classList.remove('open');});
   }
-  delSheet.querySelector('h2').textContent=`¿Eliminar «${prettyName(e.name)}»?`;
+  delSheet.querySelector('h2').textContent=`¿Eliminar «${dispName(e)}»?`;
   delSheet.querySelector('p').textContent=`Sus ${e.songs} canciones se quitan de Mis partituras${cloud?` en este dispositivo y en los demás con tu ID «${F.nick}»`:' de este dispositivo'}. El archivo PDF original no se borra.`;
   delSheet.querySelector('.lib-confirm-del').onclick=()=>{delSheet.classList.remove('open');removeBook(id);};
   requestAnimationFrame(()=>delSheet.classList.add('open'));
@@ -178,7 +219,7 @@ async function removeBook(id,{fromCloud=false}={}){
   if(!fromCloud){
     const F=window.CirculosFavs;
     if(e.cloudId&&F?.nick)F.removeBook(e.cloudId).catch(err=>console.error('Tablatura:',err));
-    toast(`Se eliminó «${prettyName(e.name)}»`);
+    toast(`Se eliminó «${dispName(e)}»`);
   }
   if(!$('tabLib').hidden||!lib.length||(fromCloud&&!book))showLib();
 }
@@ -187,7 +228,7 @@ async function removeBook(id,{fromCloud=false}={}){
 const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 function showList(){
   $('tabLoad').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=true;$('tabListPanel').hidden=false;
-  $('tabListTitle').textContent=prettyName(book.name);
+  $('tabListTitle').textContent=dispName(lib.find(x=>x.id===curId))||prettyName(book.name);
   $('tabListSub').textContent=`${book.songs.length} canciones`;
   renderList();
 }
@@ -649,7 +690,7 @@ async function cloudSave(entry){
   const F=window.CirculosFavs;
   if(!entry||!F?.nick||entry.cloudId)return;
   const b=await DB.get('book:'+entry.id);if(!b)return;
-  try{const m=await F.saveBook(b);if(m){entry.cloudId=m.id;entry.parts=m.parts;entry.upAt=Date.now();await saveIndex();toast(`«${prettyName(entry.name)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}}
+  try{const m=await F.saveBook(b,{title:entry.title});if(m){entry.cloudId=m.id;entry.parts=m.parts;entry.upAt=Date.now();await saveIndex();toast(`«${dispName(entry)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}}
   catch(err){console.error('Tablatura:',err);toast('No se pudieron guardar tus partituras en la nube');}
 }
 let queued=null;
@@ -663,9 +704,12 @@ async function cloudSync(list){
     // borrados en otro dispositivo (solo los que la nube ya había confirmado alguna vez)
     for(const e of lib.filter(x=>x.cloudId&&x.seen&&!ids.has(x.cloudId)))await removeBook(e.id,{fromCloud:true});
     lib.forEach(e=>{if(e.cloudId&&ids.has(e.cloudId))e.seen=true;});
+    let renamed=false;                                              // nombres cambiados en otro dispositivo
+    for(const m of list){const e=lib.find(x=>x.cloudId===m.id);if(e&&(m.title||'')!==(e.title||'')){if(m.title)e.title=m.title;else delete e.title;renamed=true;}}
+    if(renamed){await saveIndex();if(!$('tabLib').hidden)renderLib();const c=lib.find(x=>x.id===curId);if(c&&!$('tabListPanel').hidden)$('tabListTitle').textContent=dispName(c);}
     // nuevos en otro dispositivo: aparecen en la lista y se descargan
     let added=0;
-    for(const m of list)if(!lib.some(x=>x.cloudId===m.id)){lib.push({id:'c'+m.id,name:m.name,songs:m.songs,size:0,added:m.at||Date.now(),local:false,cloudId:m.id,parts:m.parts||1,seen:true});added++;}
+    for(const m of list)if(!lib.some(x=>x.cloudId===m.id)){lib.push({id:'c'+m.id,name:m.name,...(m.title?{title:m.title}:{}),songs:m.songs,size:0,added:m.at||Date.now(),local:false,cloudId:m.id,parts:m.parts||1,seen:true});added++;}
     lib.sort((a,b)=>(b.added||0)-(a.added||0));
     await saveIndex();
     if(added&&!$('tabLib').hidden)renderLib();

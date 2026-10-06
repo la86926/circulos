@@ -210,17 +210,23 @@ async function ready(){
   if(!ref||!fb)await connect(nick,{silent:true});
   return fb;
 }
-async function saveBook(book){
+async function saveBook(book,{title=''}={}){
   if(!nick||typeof CompressionStream==='undefined')return null;
   const {db,fs}=await ready();
   const data=await gzip(JSON.stringify({name:book.name,size:book.size,songs:book.songs}));
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8),parts=Math.max(1,Math.ceil(data.length/PART));
   const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
   for(let i=0;i<parts;i++)await fs.setDoc(fs.doc(db,COLLECTION,`${BOOK_PREFIX}${id}-${i}`),{l1:{storage:{part:data.slice(i*PART,(i+1)*PART),i:String(i),of:String(parts)},page:{}},l2:{storage:{},page:{}},...meta});
-  const m={id,parts,name:book.name,songs:book.songs.length,at:Date.now()};
+  const m={id,parts,name:book.name,songs:book.songs.length,at:Date.now(),...(title?{title}:{})};
   books=[m,...(books||[]).filter(x=>x.id!==id)];
   lastUpload=Date.now();await upload();
   return m;
+}
+async function renameBook(id,title){
+  if(!nick||!books)return;
+  await ready();
+  books=books.map(m=>{if(m.id!==id)return m;const n={...m};if(title)n.title=title;else delete n.title;return n;});
+  lastUpload=Date.now();await upload();
 }
 async function removeBook(id){
   if(!nick||!books)return;
@@ -425,7 +431,7 @@ const ICON_FAV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5s-6
   if(pageEl)a.setAttribute('aria-current','page');
   a.innerHTML=`<span class="app-choice-icon">${ICON_FAV}</span><strong>Favoritos</strong><small>Tus acordes guardados, en todos tus dispositivos.</small>`;
   picker.appendChild(a);})();
-window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,syncSoon,get books(){return books;}};
+window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,renameBook,syncSoon,get books(){return books;}};
 
 /* En la página de Favoritos: dibuja la cuenta, las pestañas y los acordes guardados */
 if(pageEl){
