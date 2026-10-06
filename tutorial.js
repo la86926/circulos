@@ -319,7 +319,7 @@ const STEPS = {
 
   cuenta: [
     { modal: true, title: 'Mi ID',
-      text: 'Con tu ID tienes tus favoritos, tus PDF y tus velocidades en todos tus dispositivos. No necesita contraseña.',
+      text: 'Con tu ID tienes tus favoritos y tus partituras en todos tus dispositivos. No necesita contraseña.',
       next: 'Empezar', skip: 'Ahora no', at: '#tutoNext', gesture: 'tap' },
 
     { title: 'Tu ID', ring: '#favAccount', radius: 20, pad: 5,

@@ -536,17 +536,16 @@ function refreshSheet(){
 }
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function refreshAll(){markHearts();markCards();refreshSheet();refreshIdItem();}
-/* Mi ID: lo que se guarda con el ID (acordes, PDF y velocidades) */
+/* Mi ID: lo que se muestra (favoritos y partituras); las velocidades viajan igual, pero no se muestran */
 let sumTimer=0;
 function refreshSummary(){
   const box=sheet&&sheet.querySelector('#idSummary');if(!box)return;
   clearTimeout(sumTimer);
   sumTimer=setTimeout(async()=>{
     const pdfs=(await localLib()).length;
-    let speeds=0;try{speeds=Object.keys(JSON.parse(store.get('tab-tempos')||'{}')).length;}catch(e){}
     const row=(ic,t,n,href)=>`<a class="ids-row" href="${href}"><span class="ids-ic">${ic}</span><span class="ids-t">${t}</span><span class="ids-n">${n}</span><svg class="ids-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`;
     box.innerHTML=`<p class="ids-head">${nick?`Se sincroniza con «${escapeHtml(nick)}»`:'Guardado solo en este dispositivo'}</p>
-      <div class="ids-list">${row(ICON_FAV,'Favoritos',favs.length,'favoritos.html')}${row('<img src="icon-partitura.webp" alt="">','Mis partituras',pdfs,'tablatura.html')}${row('<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 13V9M9.5 2.5h5"/></svg>','Velocidades guardadas',speeds,'tablatura.html')}</div>`;
+      <div class="ids-list">${row(ICON_FAV,'Favoritos',favs.length,'favoritos.html')}${row('<img src="icon-partitura.webp" alt="">','Mis partituras',pdfs,'tablatura.html')}</div>`;
   },30);
 }
 
