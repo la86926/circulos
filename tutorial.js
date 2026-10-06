@@ -71,7 +71,7 @@ const menuClose = () => { if ($('#sideMenu.open')) $('#menuCloseBtn')?.click(); 
 
 
 /* Convertidor de partituras: la guía cambia según lo que haya en pantalla (sin PDF, lista o canción abierta) */
-const tabState = () => !$('#tabSong')?.hidden ? 'song' : !$('#tabListPanel')?.hidden ? 'list' : 'load';
+const tabState = () => !$('#tabSong')?.hidden ? 'song' : !$('#tabListPanel')?.hidden ? 'list' : !$('#tabLib')?.hidden ? 'lib' : 'load';
 function convSteps() {
   const st = tabState();
   const intro = { modal: true, title: 'Convertidor de partituras',
@@ -81,13 +81,24 @@ function convSteps() {
     { title: 'Elige tu partitura', text: 'Toca aquí y elige el PDF de tus partituras. Se lee en tu dispositivo: no se sube a internet.',
       ring: '#tabDrop', radius: 22, hop: '#tabDrop', hopY: '-4px', at: '#tabDrop', gesture: 'tap' },
     { modal: true, title: '¡Listo para empezar!',
-      text: 'Cuando elijas tu PDF verás la lista de canciones. Al abrir una, te enseño sus controles. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
+      text: 'Cuando elijas tu PDF verás sus canciones y quedará guardado en «Mis partituras», junto a los que subas después. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
       next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap' }];
+  if (st === 'lib') return [intro,
+    { title: 'Mis partituras', text: 'Aquí quedan guardados todos los PDF que subes, para no tener que buscarlos otra vez.',
+      ring: '#tabLibList', radius: 20, pad: 4, at: '#tabLibList .lib-icon', gesture: 'tap' },
+    { title: 'Agregar otro PDF', text: 'Con este botón agregas otro PDF a la lista. En la computadora también puedes soltarlo aquí.',
+      ring: '#tabLibAdd', radius: 24, pad: 4, hop: '#tabLibAdd', hopY: '-4px', at: '#tabLibAdd', gesture: 'tap' },
+    { title: 'Eliminar un PDF', text: 'Con la papelera lo quitas de la lista. Antes de borrarlo te pide confirmar.',
+      ring: '#tabLibList .lib-del', radius: 24, pad: 4, hop: '#tabLibList .lib-del', hopY: '-4px', at: '#tabLibList .lib-del', gesture: 'tap' },
+    { title: 'Abre uno', text: 'Toca un PDF para ver sus canciones.',
+      ring: '#tabLibList .lib-row', radius: 18, at: '#tabLibList .lib-text', tap: { sel: '#tabLibList .lib-open' }, ok: '¡Abierto!' }];
   return [intro,
+    { title: 'Volver a Mis partituras', text: 'Con esta flecha regresas a la lista de todos tus PDF.',
+      ring: '#tabLibBack', radius: 24, pad: 4, hop: '#tabLibBack', hopY: '-4px', at: '#tabLibBack', gesture: 'tap' },
     { title: 'Busca una canción', text: 'Escribe el número o el nombre de la canción.',
       ring: '#tabSearch', radius: 16, hop: '#tabSearch', hopY: '-4px', at: '#tabSearch',
       tap: { sel: '#tabSearch', ev: 'input' }, ok: '¡Encontrada!' },
-    { title: 'Otro PDF cuando quieras', text: 'Con este botón subes otro PDF de partituras. Tus canciones de ahora se reemplazan por las del nuevo.',
+    { title: 'Otro PDF cuando quieras', text: 'Con este botón subes otro PDF de partituras. Queda guardado en «Mis partituras», junto a los demás.',
       ring: '#tabOther', radius: 24, pad: 4, hop: '#tabOther', hopY: '-4px', at: '#tabOther', gesture: 'tap' },
     { title: 'Abre una canción', text: 'Toca una canción para verla y escucharla.',
       ring: '#tabList .tab-item', radius: 16, hop: '#tabList .tab-item', hopY: '-4px', at: '#tabList .tab-item',
@@ -121,7 +132,7 @@ const SONG_STEPS = [
     ring: '.tab-tempo', radius: 16, pad: 6, at: '#tabTempo', gesture: 'swipe', tap: { sel: '#tabTempo', ev: 'input' }, ok: '¡Ajustada!' },
   { title: 'Escucha desde una nota', text: 'Toca cualquier nota de la partitura y suena desde ahí. La nota que suena se marca en rosado.',
     ring: '#tabSheet .tab-line', radius: 14, at: '#tabSheet .tl-hit', tap: { sel: '.tl-hit' }, ok: '¡Desde ahí!' },
-  { title: 'Otro PDF desde aquí', text: 'No hace falta volver a la lista: con este botón subes otro PDF desde la misma canción.',
+  { title: 'Otro PDF desde aquí', text: 'No hace falta volver atrás: con este botón subes otro PDF desde la misma canción. Se guarda en «Mis partituras».',
     ring: '#tabOtherSong', radius: 24, pad: 4, hop: '#tabOtherSong', hopY: '-4px', at: '#tabOtherSong', gesture: 'tap' },
   { title: 'Posición en el mástil', text: 'En guitarra y ukelele eliges dónde tocar: a la mitad del mástil, cerca de la cejuela o usando cuerdas al aire.',
     ring: '#tabModeWrap', radius: 16, pad: 5, hop: '#tabMode', hopY: '-4px', at: '#tabMode',

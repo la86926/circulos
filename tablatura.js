@@ -16,8 +16,36 @@ const prefs={tempo:100,chords:store.get('tab-chords','1')==='1',mode:store.get('
 const DB={
   open(){return new Promise((ok,no)=>{const r=indexedDB.open('circulos-tablatura',1);r.onupgradeneeded=()=>r.result.createObjectStore('books');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});},
   async get(k){try{const db=await this.open();return await new Promise(ok=>{const q=db.transaction('books').objectStore('books').get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null);});}catch(e){return null;}},
-  async set(k,v){try{const db=await this.open();await new Promise(ok=>{const t=db.transaction('books','readwrite');t.objectStore('books').put(v,k);t.oncomplete=ok;t.onerror=ok;});}catch(e){}}
+  async set(k,v){try{const db=await this.open();await new Promise(ok=>{const t=db.transaction('books','readwrite');t.objectStore('books').put(v,k);t.oncomplete=ok;t.onerror=ok;});}catch(e){}},
+  async del(k){try{const db=await this.open();await new Promise(ok=>{const t=db.transaction('books','readwrite');t.objectStore('books').delete(k);t.oncomplete=ok;t.onerror=ok;});}catch(e){}}
 };
+
+/* ───────── Mis partituras: cada PDF leído queda guardado en el dispositivo ─────────
+   index   : [{id,name,songs,size,added,local,cloudId,parts}]  (local = las canciones ya están en este dispositivo)
+   book:ID : el cancionero convertido        current : el que se abrió por última vez */
+let lib=[],curId=null;
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const prettyName=n=>String(n||'Partitura').replace(/\.pdf$/i,'');
+const saveIndex=()=>DB.set('index',lib);
+async function loadLib(){
+  let idx=await DB.get('index');
+  if(!Array.isArray(idx)){                                         // primera vez con la biblioteca: trae el PDF que ya estaba
+    idx=[];const last=await DB.get('last');
+    if(last&&last.songs&&last.songs.length){
+      const id=newId();idx.push({id,name:last.name,songs:last.songs.length,size:last.size||0,added:Date.now(),local:true,...(last.cloudId?{cloudId:last.cloudId,parts:1}:{})});
+      await DB.set('book:'+id,last);await DB.set('current',id);
+    }
+    await DB.set('index',idx);await DB.del('last');
+  }
+  lib=idx;curId=await DB.get('current');
+}
+async function addBook(b){
+  let e=lib.find(x=>x.name===b.name&&(x.size===b.size||(!x.size&&x.songs===b.songs.length)));   // el mismo PDF otra vez: no se duplica
+  if(e){Object.assign(e,{songs:b.songs.length,size:b.size||e.size,local:true,added:Date.now()});lib=[e,...lib.filter(x=>x!==e)];}
+  else{e={id:newId(),name:b.name,songs:b.songs.length,size:b.size||0,added:Date.now(),local:true};lib.unshift(e);}
+  await DB.set('book:'+e.id,b);curId=e.id;DB.set('current',e.id);await saveIndex();
+  return e;
+}
 
 /* ───────── Leer el PDF ───────── */
 let book=null,song=null;
@@ -40,21 +68,22 @@ async function readPdf(file){
     const songs=A.buildSongs(pages).map(s=>{const m=A.songMeasures(s);return{number:s.number,title:s.title,pages:s.pages,time:m.time,fifths:m.fifths,measures:m.measures};}).filter(s=>s.measures.length);
     doc.destroy();
     $('tabProgress').hidden=true;
-    if(!songs.length){$('tabError').textContent='No se encontraron partituras que se puedan leer en este PDF. Debe estar hecho con un programa de partituras; las fotos o escaneos no funcionan.';return;}
+    if(!songs.length){$('tabError').textContent='No se encontraron partituras que se puedan leer en este PDF. Debe estar hecho con un programa de partituras; las fotos o escaneos no funcionan.';if(lib.length){showLib();toast('Ese PDF no tiene partituras que se puedan leer');}return;}
     book={name:file.name,size:file.size,songs};
-    DB.set('last',book);
+    const entry=await addBook(book);
     $('tabSearch').value='';
     showList();
-    toast(`${songs.length} ${songs.length===1?'canción lista':'canciones listas'}`);
-    cloudSave();
+    toast(`Listo: ${songs.length} ${songs.length===1?'canción guardada':'canciones guardadas'} en Mis partituras`);
+    cloudSave(entry);
   }catch(err){
     console.error('Tablatura:',err);$('tabProgress').hidden=true;
     $('tabError').textContent='No se pudo leer este PDF. Prueba con otro archivo.';
+    if(lib.length){showLib();toast('No se pudo leer este PDF. Prueba con otro archivo.');}
   }
 }
 /* Otro PDF: desde la lista o desde la canción se abre el selector; si se elige un archivo, se muestra el avance */
 function openLoad(){
-  stop();$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();
+  stop();$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();
   history.replaceState(null,'','#');scrollTo({top:Math.max(0,$('tabLoad').offsetTop-90),behavior:'smooth'});
 }
 $('tabFile').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if($('tabLoad').hidden)openLoad();readPdf(f);});
@@ -62,12 +91,95 @@ const drop=$('tabDrop');
 ['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('is-over');}));
 ['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('is-over');}));
 drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readPdf(f);});
+/* También se puede soltar un PDF sobre «Mis partituras» (computadora) */
+const libPanel=$('tabLib');
+['dragenter','dragover'].forEach(t=>libPanel.addEventListener(t,e=>{e.preventDefault();libPanel.classList.add('is-over');}));
+['dragleave','drop'].forEach(t=>libPanel.addEventListener(t,e=>{e.preventDefault();libPanel.classList.remove('is-over');}));
+libPanel.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){openLoad();readPdf(f);}});
+
+/* ───────── Mis partituras (vista) ───────── */
+const ICON_DOC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M10.5 17.5V11l4-1v6"/><circle cx="9.3" cy="17.6" r="1.3"/><circle cx="13.3" cy="16.1" r="1.3"/></svg>';
+const ICON_TRASH='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9.5 7V5.2c0-.7.5-1.2 1.2-1.2h2.6c.7 0 1.2.5 1.2 1.2V7M6.5 7l.8 11.6c.1 1 .9 1.9 2 1.9h5.4c1.1 0 1.9-.9 2-1.9L17.5 7M10.2 11v5.5M13.8 11v5.5"/></svg>';
+const ICON_CLOUD='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.2a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.2 9.5 4.5 4.5 0 0 0 7 18.5Z"/></svg>';
+const fmtDate=t=>{try{return new Intl.DateTimeFormat('es',{day:'numeric',month:'short',year:'numeric'}).format(new Date(t)).replace('.','');}catch(e){return '';}};
+function showLib(){
+  stop();
+  if(!lib.length){$('tabLib').hidden=true;$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();return;}
+  $('tabLoad').hidden=true;$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=false;
+  KB.refresh();FAB.refresh();history.replaceState(null,'','#');renderLib();
+}
+function renderLib(){
+  const n=lib.length,F=window.CirculosFavs;
+  $('tabLibSub').textContent=`${n} ${n===1?'PDF':'PDF'} · ${F?.nick?`también en tu ID «${F.nick}»`:'guardados en este dispositivo'}`;
+  $('tabLibList').innerHTML=lib.map(e=>`<div class="lib-row${e.id===curId?' is-current':''}" role="listitem">
+      <button class="lib-open" type="button" data-open="${e.id}">
+        <span class="lib-icon">${ICON_DOC}</span>
+        <span class="lib-text"><strong>${esc(prettyName(e.name))}</strong><small>${e.id===curId?'<b class="lib-now">Abierta</b> · ':''}${e.songs} ${e.songs===1?'canción':'canciones'} · ${fmtDate(e.added)}${!e.local?` · <span class="lib-cloud">${ICON_CLOUD}en tu ID</span>`:''}</small></span>
+        <svg class="lib-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="lib-del" type="button" data-del="${e.id}" aria-label="Eliminar ${esc(prettyName(e.name))}">${ICON_TRASH}</button>
+    </div>`).join('');
+}
+async function openBook(id){
+  const e=lib.find(x=>x.id===id);if(!e)return;
+  let b=await DB.get('book:'+id);
+  if(!b&&e.cloudId){
+    const F=window.CirculosFavs;if(!F?.nick){toast('Entra con tu ID en Favoritos para traer este PDF');return;}
+    toast('Trayendo las canciones desde tu ID…');
+    try{b=await F.loadBook({id:e.cloudId,parts:e.parts||1});}catch(err){console.error('Tablatura:',err);}
+    if(!b){toast('No se pudieron traer las canciones. Revisa tu internet.');return;}
+    await DB.set('book:'+id,b);e.local=true;saveIndex();
+  }
+  if(!b){toast('No se encontraron las canciones de este PDF');return;}
+  book=b;curId=id;DB.set('current',id);
+  $('tabSearch').value='';showList();scrollTo({top:Math.max(0,$('tabListPanel').offsetTop-90),behavior:'smooth'});
+}
+$('tabLibList').addEventListener('click',e=>{
+  const o=e.target.closest('[data-open]');if(o){openBook(o.dataset.open);return;}
+  const d=e.target.closest('[data-del]');if(d)askDelete(d.dataset.del);
+});
+$('tabLibBack').addEventListener('click',showLib);
+/* Eliminar: hoja de confirmación al estilo de iOS */
+let delSheet=null;
+function askDelete(id){
+  const e=lib.find(x=>x.id===id);if(!e)return;
+  const F=window.CirculosFavs,cloud=!!(F?.nick&&e.cloudId);
+  if(!delSheet){
+    delSheet=document.createElement('div');delSheet.className='app-sheet lib-sheet';delSheet.id='libSheet';
+    delSheet.innerHTML=`<div class="app-sheet-backdrop" data-close></div>
+      <section class="app-sheet-card lib-confirm" role="alertdialog" aria-modal="true" aria-labelledby="libDelTitle">
+        <div class="lib-confirm-box"><span class="lib-confirm-icon">${ICON_TRASH}</span><h2 id="libDelTitle"></h2><p></p></div>
+        <button class="lib-confirm-del" type="button">Eliminar</button>
+        <button class="lib-confirm-cancel" type="button" data-close>Cancelar</button>
+      </section>`;
+    document.body.appendChild(delSheet);
+    delSheet.addEventListener('click',ev=>{if(ev.target.closest('[data-close]'))delSheet.classList.remove('open');});
+  }
+  delSheet.querySelector('h2').textContent=`¿Eliminar «${prettyName(e.name)}»?`;
+  delSheet.querySelector('p').textContent=`Sus ${e.songs} canciones se quitan de Mis partituras${cloud?` en este dispositivo y en los demás con tu ID «${F.nick}»`:' de este dispositivo'}. El archivo PDF original no se borra.`;
+  delSheet.querySelector('.lib-confirm-del').onclick=()=>{delSheet.classList.remove('open');removeBook(id);};
+  requestAnimationFrame(()=>delSheet.classList.add('open'));
+}
+async function removeBook(id,{fromCloud=false}={}){
+  const e=lib.find(x=>x.id===id);if(!e)return;
+  const row=document.querySelector(`.lib-row [data-del="${id}"]`)?.closest('.lib-row');
+  if(row&&!fromCloud){row.classList.add('is-leaving');await new Promise(r=>setTimeout(r,260));}
+  lib=lib.filter(x=>x!==e);await DB.del('book:'+id);await saveIndex();
+  if(curId===id){curId=null;DB.del('current');if(book&&!$('tabSong').hidden)stop();book=null;}
+  if(!fromCloud){
+    const F=window.CirculosFavs;
+    if(e.cloudId&&F?.nick)F.removeBook(e.cloudId).catch(err=>console.error('Tablatura:',err));
+    toast(`Se eliminó «${prettyName(e.name)}»`);
+  }
+  if(!$('tabLib').hidden||!lib.length||(fromCloud&&!book))showLib();
+}
 
 /* ───────── Lista de canciones ───────── */
 const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 function showList(){
-  $('tabLoad').hidden=true;$('tabSong').hidden=true;$('tabListPanel').hidden=false;
-  $('tabListSub').textContent=`${book.songs.length} canciones · ${book.name}`;
+  $('tabLoad').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=true;$('tabListPanel').hidden=false;
+  $('tabListTitle').textContent=prettyName(book.name);
+  $('tabListSub').textContent=`${book.songs.length} canciones`;
   renderList();
 }
 function renderList(){
@@ -505,50 +617,61 @@ document.addEventListener('click',e=>{if(e.target.closest('a[href],#menuBtn,.app
 $('tabSheet').addEventListener('click',e=>{const h=e.target.closest('.tl-hit');if(h)play(+h.dataset.i);});
 $('tabPrint').addEventListener('click',()=>{pause();print();});
 
-/* ───────── Con ID de Favoritos: el cancionero convertido viaja a sus otros dispositivos ───────── */
-let cloudBusy=false;
-async function cloudSave(){
+/* ───────── Con ID de Favoritos: Mis partituras viaja a sus otros dispositivos ───────── */
+let cloudBusy=false,libReady=false;
+async function cloudSave(entry){
   const F=window.CirculosFavs;
-  if(!book||!F?.nick||cloudBusy)return;
-  cloudBusy=true;
-  try{const id=await F.saveBook(book);if(id){book.cloudId=id;DB.set('last',book);toast(`Tus partituras quedaron en tu ID «${F.nick}»: aparecerán en tus otros dispositivos`);}}
+  if(!entry||!F?.nick||entry.cloudId)return;
+  const b=await DB.get('book:'+entry.id);if(!b)return;
+  try{const m=await F.saveBook(b);if(m){entry.cloudId=m.id;entry.parts=m.parts;entry.upAt=Date.now();await saveIndex();if(!$('tabLib').hidden)renderLib();toast(`«${prettyName(entry.name)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}}
   catch(err){console.error('Tablatura:',err);toast('No se pudieron guardar tus partituras en la nube');}
-  finally{cloudBusy=false;}
 }
-async function cloudSync(meta){
+let queued=null;
+async function cloudSync(list){
   const F=window.CirculosFavs;
-  if(!F?.nick||cloudBusy)return;
-  if(!meta){if(book&&!book.cloudId)cloudSave();return;}            // la nube aún no tiene cancionero: sube el de aquí
-  if(book&&book.cloudId===meta.id)return;                          // ya es el mismo
+  if(!F?.nick||!Array.isArray(list))return;
+  if(cloudBusy){queued=list;return;}                              // llegó otra versión mientras trabajaba: va después
   cloudBusy=true;
   try{
-    toast('Trayendo tus partituras desde tu ID…');
-    const b=await F.loadBook(meta);if(!b)return;
-    const wasOpen=song&&!$('tabSong').hidden?song.number:null;
-    book=b;DB.set('last',book);
-    if(wasOpen!=null){const i=book.songs.findIndex(x=>x.number===wasOpen);if(i>=0)openSong(i);else showList();}else showList();
-    $('tabDropTitle').textContent='Elegir otra partitura en PDF';
-    toast(`${book.songs.length} canciones listas, desde tu ID`);
-  }catch(err){console.error('Tablatura:',err);toast('No se pudieron traer tus partituras');}
-  finally{cloudBusy=false;}
+    const ids=new Set(list.map(m=>m.id));
+    // borrados en otro dispositivo (solo los que la nube ya había confirmado alguna vez)
+    for(const e of lib.filter(x=>x.cloudId&&x.seen&&!ids.has(x.cloudId)))await removeBook(e.id,{fromCloud:true});
+    lib.forEach(e=>{if(e.cloudId&&ids.has(e.cloudId))e.seen=true;});
+    // nuevos en otro dispositivo: aparecen en la lista y se descargan
+    let added=0;
+    for(const m of list)if(!lib.some(x=>x.cloudId===m.id)){lib.push({id:'c'+m.id,name:m.name,songs:m.songs,size:0,added:m.at||Date.now(),local:false,cloudId:m.id,parts:m.parts||1,seen:true});added++;}
+    lib.sort((a,b)=>(b.added||0)-(a.added||0));
+    await saveIndex();
+    if(added&&!$('tabLib').hidden)renderLib();
+    if(added&&!book&&$('tabLib').hidden&&!$('tabLoad').hidden)showLib();
+    if(added)toast(added===1?'Llegó 1 PDF desde tu ID':`Llegaron ${added} PDF desde tu ID`);
+    // los que solo están aquí: suben al ID
+    for(const e of lib.filter(x=>!x.cloudId&&x.local))await cloudSave(e);
+    // descarga en segundo plano lo que aún no está en este dispositivo
+    for(const e of lib.filter(x=>!x.local&&x.cloudId)){
+      try{const b=await F.loadBook({id:e.cloudId,parts:e.parts||1});if(b){await DB.set('book:'+e.id,b);e.local=true;await saveIndex();if(!$('tabLib').hidden)renderLib();}}catch(err){console.error('Tablatura:',err);}
+    }
+  }finally{cloudBusy=false;if(queued){const q=queued;queued=null;cloudSync(q);}}
 }
-let bookLoaded=false;
-document.addEventListener('circulos:cloud-book',e=>{if(bookLoaded)cloudSync(e.detail);});
+let pendingList=null;
+document.addEventListener('circulos:cloud-books',e=>{if(libReady)cloudSync(e.detail);else pendingList=e.detail;});
 
 /* Para la guía (tutorial.js): demostraciones del teclado y del botón flotante */
 window.CirculosTablatura={kbDemo:on=>KB.demo(on),fabDemo:on=>FAB.demo(on)};
 
-/* ───────── Inicio: abre el último PDF leído en este dispositivo ───────── */
+/* ───────── Inicio: Mis partituras y el último PDF abierto ───────── */
 (async()=>{
-  const last=await DB.get('last');
-  if(last&&last.songs&&last.songs.length){
-    book=last;showList();
-    const h=decodeURIComponent(location.hash.slice(1));
-    if(h){const i=book.songs.findIndex(s=>String(s.number)===h);if(i>=0)openSong(i);}
-    $('tabDropTitle').textContent='Elegir otra partitura en PDF';
+  await loadLib();
+  const h=decodeURIComponent(location.hash.slice(1));
+  let opened=false;
+  if(h&&curId){                                                     // enlace a una canción del PDF abierto
+    const b=await DB.get('book:'+curId);
+    if(b){book=b;const i=book.songs.findIndex(s=>String(s.number)===h);if(i>=0){showList();openSong(i);opened=true;}}
   }
-  bookLoaded=true;
-  const F=window.CirculosFavs;                                      // si el ID ya respondió antes de abrir el cancionero
-  if(F?.nick&&F.bookMeta!==undefined&&F.bookMeta)cloudSync(F.bookMeta);
+  if(!opened)showLib();
+  if(lib.length)$('tabDropTitle').textContent='Elegir otra partitura en PDF';
+  libReady=true;
+  const F=window.CirculosFavs,list=pendingList||(F?.nick?F.books:null);
+  if(list)cloudSync(list);
 })();
 })();

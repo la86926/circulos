@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="shell.css?v=4">
 <link rel="stylesheet" href="chords-library.css?v=15">
-<link rel="stylesheet" href="tablatura.css?v=11">
+<link rel="stylesheet" href="tablatura.css?v=12">
 <link rel="stylesheet" href="polish.css?v=20">
 <link rel="stylesheet" href="tutorial.css?v=5">
 </head>
@@ -54,7 +54,7 @@
   <section class="hero tab-hero">
     <div>
       <h1>Partitura a tablatura</h1>
-      <p class="hero-copy">Sube una partitura en PDF y la melodía se pasa a tablatura de guitarra o ukelele, o a notas para piano. Todo se hace en tu dispositivo: el archivo no se sube a internet.</p>
+      <p class="hero-copy">Sube una partitura en PDF y la melodía se pasa a tablatura de guitarra o ukelele, o a notas para piano. El PDF se lee en tu dispositivo y no se sube a internet.</p>
     </div>
   </section>
 
@@ -69,8 +69,13 @@
     <p class="tab-error" id="tabError" role="alert"></p>
   </section>
 
+  <section class="panel tab-lib" id="tabLib" hidden>
+    <div class="tab-lib-head"><div><h3 class="panel-title">Mis partituras</h3><p class="panel-subtitle" id="tabLibSub"></p></div><button class="tab-newpdf" id="tabLibAdd" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg><span>Agregar PDF</span></button></div>
+    <div class="lib-list" id="tabLibList" role="list"></div>
+  </section>
+
   <section class="panel tab-list-panel" id="tabListPanel" hidden>
-    <div class="panel-head"><div><h3 class="panel-title" id="tabListTitle">Canciones</h3><p class="panel-subtitle" id="tabListSub"></p></div><button class="tab-newpdf" id="tabOther" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg><span>Subir otro PDF</span></button></div>
+    <div class="panel-head"><div class="tab-list-head"><button class="icon-btn tab-back" id="tabLibBack" type="button" aria-label="Volver a Mis partituras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><div><h3 class="panel-title" id="tabListTitle">Canciones</h3><p class="panel-subtitle" id="tabListSub"></p></div></div><button class="tab-newpdf" id="tabOther" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg><span>Subir otro PDF</span></button></div>
     <label class="chord-search tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="tabSearch" type="search" autocomplete="off" placeholder="Busca por número o nombre"></label>
     <div class="tab-list" id="tabList"></div>
   </section>
@@ -106,11 +111,11 @@
 <script src="partitura-extract.js?v=1" defer></script>
 <script src="partitura-analyze.js?v=1" defer></script>
 <script src="piano-sound.js?v=5" defer></script>
-<script src="tablatura.js?v=15" defer></script>
+<script src="tablatura.js?v=16" defer></script>
 <script src="gift-ui.js?v=7" defer></script>
 <script src="chords-library.js?v=25" defer></script>
 <script src="share.js?v=2" defer></script>
-<script src="favoritos.js?v=12" type="module"></script>
-<script src="tutorial.js?v=26" defer></script>
+<script src="favoritos.js?v=13" type="module"></script>
+<script src="tutorial.js?v=27" defer></script>
 </body>
 </html>
