@@ -2,7 +2,7 @@
    - Una mano animada enseña qué tocar o deslizar; el botón señalado "salta" suavemente.
    - Se puede cerrar en cualquier momento (X, "Ahora no" o la tecla Esc).
    - Se muestra solo la primera vez; después se repite con el botón "?" o desde el menú.
-   - Funciona en index.html (Círculos), acordes.html (Biblioteca), tablatura.html (Convertidor) y en la hoja «Favoritos». */
+   - Funciona en index.html (Círculos), acordes.html (Biblioteca), tablatura.html (Convertidor) y favoritos.html. */
 (() => {
 'use strict';
 if (window.__circulosTutorial) return;
@@ -10,7 +10,8 @@ window.__circulosTutorial = true;
 
 const PAGE = document.getElementById('circlesView') ? 'circulos'
            : document.getElementById('chordsView') ? 'acordes'
-           : document.getElementById('tabView') ? 'convertidor' : null;
+           : document.getElementById('tabView') ? 'convertidor'
+           : document.getElementById('favView') ? 'favoritos' : null;
 if (!PAGE) return;
 
 /* ───────── Ajustes ───────── */
@@ -320,7 +321,7 @@ const STEPS = {
       } },
 
     { modal: true, title: '¡Listo!',
-      text: 'Cuando quieras repetir esta guía, toca el botón “?” con «Favoritos» abierto.',
+      text: 'Cuando quieras repetir esta guía, toca el botón “?” o búscala en el menú.',
       next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap' }
   ],
 
@@ -606,7 +607,7 @@ function init() {
   });
   const forced = new URLSearchParams(location.search).has('tutorial');
   if (!forced && !SHOW_EVERY_VISIT && isDone()) return;
-  const ready = { circulos: '#circuloArmonico .harmony-wheel-node', acordes: '.chord-catalog-card', convertidor: '#tabView' }[PAGE];
+  const ready = { circulos: '#circuloArmonico .harmony-wheel-node', acordes: '.chord-catalog-card', convertidor: '#tabView', favoritos: '#favAccount > *' }[PAGE];
   let tries = 0;
   const timer = setInterval(() => {
     if (document.body.classList.contains('conv-locked') || $('#convSheet.open')) { tries = 0; return; }   // espera a la contraseña

@@ -259,6 +259,22 @@ html[data-theme="dark"] .act-fav.is-on svg{fill:#7fb1e8;stroke:#7fb1e8}
 .fav-link{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:6px}
 .fav-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 .fav-tabs{max-width:380px;margin:0 0 16px}
+/* Página de Favoritos */
+.fav-page{padding:22px}
+.fav-page+.fav-page{margin-top:16px}
+.fav-page .fav-account{max-width:560px;margin:0}
+.fav-page .fav-error:empty{display:none}
+.fav-page .fav-form label{font-size:14px}
+/* Guitarra / Piano: pestañas grandes con ícono (distintas de los botones Entrar, Crear y Cambiar ID) */
+.fav-inst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-width:440px;margin:0 0 18px;padding:5px;border:1px solid var(--line);border-radius:18px;background:var(--surface2)}
+.fav-inst button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 12px;border:0;border-radius:13px;background:transparent;color:var(--muted);font:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:background-color .2s,color .2s,box-shadow .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.fav-inst button:active{transform:scale(.96)}
+.fav-inst button svg{width:22px;height:22px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.fav-inst button svg .fill{fill:currentColor;stroke:none}
+.fav-inst button.active{background:#5b8fdb;color:#fff;box-shadow:0 8px 20px rgba(60,110,190,.3)}
+.fav-inst button:not(.active):hover{color:var(--text);background:var(--surface)}
+.fav-inst .fav-count{margin-left:0;opacity:.8}
+@media(max-width:560px){.fav-page{padding:16px}}
 .fav-id-input{width:100%;height:46px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:16px;outline:0}
 .fav-id-input:focus{border-color:#8bb7e6;box-shadow:0 0 0 3px rgba(139,183,230,.3)}
 .fav-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr);gap:8px;margin-top:10px}

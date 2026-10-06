@@ -245,41 +245,25 @@ if(circleHead){
 function markCards(root=document){root.querySelectorAll('.chord-catalog-card[data-chord-id]').forEach(c=>c.classList.toggle('is-fav',c.dataset.var?has(c.dataset.chordId+':'+c.dataset.var):hasAny(c.dataset.chordId)));}
 const grid=document.getElementById('chordCatalogGrid');
 
-/* ───────── Hoja "Favoritos" ───────── */
+/* ───────── Página "Favoritos" (favoritos.html) ─────────
+   En las demás páginas, «Favoritos» del menú lleva a esta página. */
+const pageEl=document.getElementById('favView');
 let sheet=null,favTab='guitar';
 const instOf=f=>f.k&&f.k[0]==='p'?'piano':'guitar';
-function openSheet(){
-  if(!sheet){
-    sheet=document.createElement('div');sheet.className='app-sheet';sheet.id='favSheet';
-    sheet.innerHTML=`<div class="app-sheet-backdrop" data-close></div>
-      <section class="app-sheet-card fav-card" role="dialog" aria-modal="true" aria-labelledby="favTitle">
-        <button class="app-sheet-close" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-        <h2 id="favTitle">Favoritos</h2>
-        <div class="fav-account" id="favAccount"></div>
-        <div class="segmented seg2 fav-tabs" id="favTabs" role="tablist" aria-label="Instrumento">
-          <button class="seg-btn active" type="button" role="tab" data-fav-tab="guitar" aria-selected="true">Guitarra <span class="fav-count"></span></button>
-          <button class="seg-btn" type="button" role="tab" data-fav-tab="piano" aria-selected="false">Piano <span class="fav-count"></span></button>
-        </div>
-        <div class="chord-catalog-grid fav-grid" id="favGrid"></div>
-      </section>`;
-    document.body.appendChild(sheet);
-    sheet.addEventListener('click',e=>{
-      if(e.target.closest('[data-close]')){sheet.classList.remove('open');document.dispatchEvent(new CustomEvent('circulos:favsheet',{detail:false}));return;}
-      const card=e.target.closest('[data-chord-id]');if(card)lib()?.openDetail(card.dataset.chordId,{inst:card.dataset.inst,...(card.dataset.var?{focus:card.dataset.var}:{})});
-    });
-    sheet.addEventListener('submit',async e=>{
-      e.preventDefault();const input=sheet.querySelector('#favNick'),msg=sheet.querySelector('.fav-error');
-      const mode=(e.submitter&&e.submitter.dataset.mode)||'enter';
-      try{msg.textContent='';await connect(input.value,{mode});}catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo conectar. Revisa tu internet.');if(nick)setCloud('error',errorText(err));else setCloud('off');}
-    });
-    sheet.addEventListener('click',e=>{if(e.target.closest('[data-signout]'))signOut();if(e.target.closest('[data-rename]'))openRename();});
-    sheet.addEventListener('click',e=>{const t=e.target.closest('[data-fav-tab]');if(t){favTab=t.dataset.favTab;refreshSheet();}});
-  }
-  favTab='guitar';                                   // siempre abre en Guitarra
-  refreshSheet();
-  lib()?.load().then(refreshSheet).catch(()=>{});
-  requestAnimationFrame(()=>{sheet.classList.add('open');document.dispatchEvent(new CustomEvent('circulos:favsheet',{detail:true}));});
+function bindFav(root){
+  root.addEventListener('click',e=>{
+    const card=e.target.closest('[data-chord-id]');if(card)lib()?.openDetail(card.dataset.chordId,{inst:card.dataset.inst,...(card.dataset.var?{focus:card.dataset.var}:{})});
+  });
+  root.addEventListener('submit',async e=>{
+    if(!e.target.closest('#favAccount'))return;
+    e.preventDefault();const input=root.querySelector('#favNick'),msg=root.querySelector('.fav-error');
+    const mode=(e.submitter&&e.submitter.dataset.mode)||'enter';
+    try{msg.textContent='';await connect(input.value,{mode});}catch(err){console.error('Favoritos:',err);msg.textContent=err.code?errorText(err):(err.message||'No se pudo conectar. Revisa tu internet.');if(nick)setCloud('error',errorText(err));else setCloud('off');}
+  });
+  root.addEventListener('click',e=>{if(e.target.closest('[data-signout]'))signOut();if(e.target.closest('[data-rename]'))openRename();});
+  root.addEventListener('click',e=>{const t=e.target.closest('[data-fav-tab]');if(t){favTab=t.dataset.favTab;refreshSheet();}});
 }
+function openSheet(){if(!pageEl){location.href='favoritos.html';return;}pageEl.scrollIntoView({behavior:'smooth'});}
 const ICON_IN='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4M14 12H4"/></svg>';
 const ICON_NEW='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 const ICON_EDIT='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></svg>';
@@ -342,8 +326,19 @@ function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function refreshAll(){markHearts();markCards();refreshSheet();}
 
 const ICON_FAV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5s-6.8-4.1-8.4-8.4C2.6 8.2 4.5 5.3 7.5 5.3c1.8 0 3.3 1 4.5 2.6 1.2-1.6 2.7-2.6 4.5-2.6 3 0 4.9 2.9 3.9 5.8-1.6 4.3-8.4 8.4-8.4 8.4Z"/></svg>';
-window.CirculosShell?.addMenuItem({id:'favMenuItem',icon:ICON_FAV,title:'Favoritos',subtitle:'Tus acordes guardados, en todos tus dispositivos.',onClick:openSheet});
-window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!sheet?.classList.contains('open'),get nick(){return nick;},get count(){return favs.length;}};
+/* «Favoritos» en el menú: un enlace a su página, igual que Círculos y Acordes */
+(()=>{const picker=document.querySelector('.app-picker');if(!picker||document.getElementById('favMenuItem'))return;
+  const a=document.createElement('a');a.id='favMenuItem';a.href='favoritos.html';a.className='app-choice app-extra'+(pageEl?' active':'');
+  if(pageEl)a.setAttribute('aria-current','page');
+  a.innerHTML=`<span class="app-choice-icon">${ICON_FAV}</span><strong>Favoritos</strong><small>Tus acordes guardados, en todos tus dispositivos.</small>`;
+  picker.appendChild(a);})();
+window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;}};
+
+/* En la página de Favoritos: dibuja la cuenta, las pestañas y los acordes guardados */
+if(pageEl){
+  sheet=pageEl;bindFav(pageEl);refreshSheet();
+  lib()?.load().then(refreshSheet).catch(()=>{});
+}
 
 /* Si ya tenía nick, se reconecta solo */
 if(nick)reconnect();
