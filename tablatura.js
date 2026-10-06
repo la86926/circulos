@@ -269,6 +269,7 @@ function keyName(f){const L=latin();if(f>=0)return(L?KEY_NAMES:KEY_EN)[f]||'';re
 
 function openSong(i){
   song=book.songs[i];stop();$('tabKb').checked=true;
+  songKey=`${curId||'pdf'}:${song.number??'i'+i}`;applyTempo();
   $('tabListPanel').hidden=true;$('tabSong').hidden=false;
   $('tabSongNum').textContent=song.number!=null?`Canción ${song.number}`:'';
   $('tabSongTitle').textContent=song.title;
@@ -515,8 +516,18 @@ const KB=(()=>{
 })();
 
 /* ───────── Escuchar ───────── */
+/* Velocidad: cada canción recuerda la suya; las que no se tocaron empiezan en 100 */
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
-tempo.addEventListener('input',()=>{$('tabTempoVal').textContent=tempo.value;});
+let songKey='';
+const tempos=()=>{try{return JSON.parse(store.get('tab-tempos','{}'))||{};}catch(e){return {};}};
+function applyTempo(){const v=tempos()[songKey]||prefs.tempo;tempo.value=v;$('tabTempoVal').textContent=v;}
+tempo.addEventListener('input',()=>{
+  $('tabTempoVal').textContent=tempo.value;
+  if(!songKey)return;
+  const t=tempos(),v=+tempo.value;
+  if(v===prefs.tempo)delete t[songKey];else t[songKey]=v;
+  store.set('tab-tempos',JSON.stringify(t));
+});
 let timer=0,playing=false,paused=false,pos=0,cur=-1,soundReady=false,nowEl=null;
 const ICON_PLAY='M8 5.5v13l10.5-6.5Z',ICON_PAUSE='M7 5.5h3.6v13H7ZM13.4 5.5H17v13h-3.6Z';
 function ui(){
