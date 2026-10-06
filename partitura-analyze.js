@@ -105,12 +105,17 @@ function analyzePage(raw){
     // barras de compás: tocan la línea superior e inferior del pentagrama
     const bars=dedupe(vsegs.filter(v=>v.x>firstX-hw&&v.x<=st.x1+1&&Math.abs(v.y1-st.yTop)<0.6&&v.y0<=st.yBot+0.6&&!heads.some(h=>v.x>h.x-0.8&&v.x<h.x+hw+0.8&&Math.abs(h.y-(v.y0+v.y1)/2)<3*s)).map(v=>v.x).sort((a,b)=>a-b),1.5);
     // columnas (notas que suenan juntas)
-    const cols=[];
-    for(const h of heads){
-      const c=cols.find(c=>Math.abs(c.x-h.x)<0.55*hw||(Math.abs(c.x-h.x)<1.25*hw&&c.heads.some(o=>Math.abs(o.y-h.y)<0.6*s)));
-      if(c){c.heads.push(h);c.x=Math.min(c.x,h.x);}else cols.push({x:h.x,heads:[h]});
+    // Dos notas van juntas si están alineadas (o se enciman), o si son vecinas (una segunda) y una quedó corrida al lado.
+    // Se agrupan todas las conectadas, así un acorde no se parte aunque una de sus notas esté corrida.
+    const par=heads.map((_,i)=>i),find=i=>par[i]===i?i:(par[i]=find(par[i]));
+    for(let i=0;i<heads.length;i++)for(let j=i+1;j<heads.length;j++){
+      const a=heads[i],b=heads[j],dx=Math.abs(a.x-b.x);
+      if(dx>=1.25*hw)continue;
+      if(dx<0.9*hw||Math.abs(a.y-b.y)<0.6*s)par[find(i)]=find(j);   // cabezas que se enciman no pueden ir una después de otra
     }
-    cols.sort((a,b)=>a.x-b.x);
+    const byRoot=new Map();
+    heads.forEach((h,i)=>{const r=find(i);if(!byRoot.has(r))byRoot.set(r,{x:h.x,heads:[]});const c=byRoot.get(r);c.heads.push(h);c.x=Math.min(c.x,h.x);});
+    const cols=[...byRoot.values()].sort((a,b)=>a.x-b.x);
     // altura de cada nota con alteraciones del compás
     const base=CLEF_BASE[st.clef]??30;
     const keyAlter=d=>{const L=((d%7)+7)%7;if(st.fifths>0)return SHARP_ORDER.slice(0,st.fifths).includes(L)?1:0;if(st.fifths<0)return FLAT_ORDER.slice(0,-st.fifths).includes(L)?-1:0;return 0;};
@@ -301,7 +306,7 @@ function songMeasures(song){
 }
 
 /* Sube cuando cambia la forma de leer las partituras: los PDF guardados se vuelven a transcribir solos */
-const VERSION=2;
+const VERSION=3;
 const api={analyzePage,buildSongs,songMeasures,findStaves,NAMES,VERSION};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PartituraAnalyze=api;
 })(typeof self!=='undefined'?self:this);
