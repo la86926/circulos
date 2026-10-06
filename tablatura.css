@@ -151,6 +151,10 @@ html[data-theme=dark] .tab-fab button{border-color:rgba(255,255,255,.2)}
 .lib-text small{color:var(--muted);font-size:13px;line-height:1.35}
 .lib-cloud{display:inline-flex;align-items:center;gap:3px;color:#4f86d6;font-weight:650}
 .lib-cloud svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.lib-upd{justify-self:start;display:inline-flex;align-items:center;gap:5px;margin-top:3px;padding:4px 10px 4px 8px;border-radius:999px;background:#eaf3ff;color:#3f78c9;font-size:12.5px;font-weight:700;border:1px solid #cfe2fb;cursor:pointer;transition:background .2s,transform .15s}
+.lib-upd:hover{background:#dcebff}.lib-upd:active{transform:scale(.97)}
+.lib-upd svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+html[data-theme=dark] .lib-upd{background:#1a2638;color:#9dc4f5;border-color:#2c4568}
 .lib-now{color:#3a6fc0;font-weight:750}
 .lib-chev{flex:0 0 16px;width:16px;height:16px;fill:none;stroke:#b6bfcc;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .lib-edit{flex:0 0 auto;width:40px;height:40px;margin:0 0 0 2px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:#9aa4b2;cursor:pointer;transition:background-color .2s,color .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}

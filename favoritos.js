@@ -207,7 +207,7 @@ async function tagOwners(prev){                                    // PDF subido
 }
 async function clearLocalLib(){
   const idx=await localLib();
-  for(const e of idx)await LIBDB.del('book:'+e.id);
+  for(const e of idx){await LIBDB.del('book:'+e.id);await LIBDB.del('pdf:'+e.id);}
   await LIBDB.set('index',[]);await LIBDB.del('current');libReset();
 }
 async function forgetCloudIds(){                                   // lo de aquí se subirá de nuevo a este ID
@@ -323,7 +323,7 @@ async function ready(){
 async function saveBook(book,{title=''}={}){
   if(!nick||typeof CompressionStream==='undefined')return null;
   const {db,fs}=await ready();
-  const data=await gzip(JSON.stringify({name:book.name,size:book.size,songs:book.songs}));
+  const data=await gzip(JSON.stringify({name:book.name,size:book.size,songs:book.songs,ver:book.ver||1}));
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8),parts=Math.max(1,Math.ceil(data.length/PART));
   const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
   for(let i=0;i<parts;i++)await fs.setDoc(fs.doc(db,COLLECTION,`${BOOK_PREFIX}${id}-${i}`),{l1:{storage:{part:data.slice(i*PART,(i+1)*PART),i:String(i),of:String(parts)},page:{}},l2:{storage:{},page:{}},...meta});
@@ -331,6 +331,23 @@ async function saveBook(book,{title=''}={}){
   books=[m,...(books||[]).filter(x=>x.id!==id)];
   lastUpload=Date.now();await upload();
   return m;
+}
+/* La transcripción de un PDF que ya está en el ID mejoró: se reemplaza en el mismo lugar y los demás
+   dispositivos la vuelven a descargar al ver que cambió «rev» */
+async function updateBook(entryId){
+  if(!nick||typeof CompressionStream==='undefined')return null;
+  const e=(await localLib()).find(x=>x.id===entryId);
+  if(!e||!ownedHere(e))return null;
+  const b=await LIBDB.get('book:'+entryId);if(!b)return null;
+  const {db,fs}=await ready();
+  const data=await gzip(JSON.stringify({name:b.name,size:b.size,songs:b.songs,ver:b.ver||1}));
+  const parts=Math.max(1,Math.ceil(data.length/PART));
+  const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
+  for(let i=0;i<parts;i++)await fs.setDoc(fs.doc(db,COLLECTION,`${BOOK_PREFIX}${e.cloudId}-${i}`),{l1:{storage:{part:data.slice(i*PART,(i+1)*PART),i:String(i),of:String(parts)},page:{}},l2:{storage:{},page:{}},...meta});
+  const rev=Date.now();
+  books=(books||[]).map(m=>m.id===e.cloudId?{...m,parts,songs:b.songs.length,rev}:m);
+  lastUpload=Date.now();await upload();
+  return {parts,rev};
 }
 async function renameBook(id,title){
   if(!nick||!books)return;
@@ -567,7 +584,7 @@ refreshIdItem();
   if(document.getElementById('favView'))a.setAttribute('aria-current','page');
   a.innerHTML=`<span class="app-choice-icon">${ICON_FAV}</span><strong>Favoritos</strong><small>Tus acordes guardados, en todos tus dispositivos.</small>`;
   picker.appendChild(a);})();
-window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,renameBook,syncSoon,uploadEntry,pushLocalBooks,get books(){return books;}};
+window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,renameBook,updateBook,syncSoon,uploadEntry,pushLocalBooks,get books(){return books;}};
 
 /* En la página de Favoritos: dibuja la cuenta, las pestañas y los acordes guardados */
 if(pageEl){

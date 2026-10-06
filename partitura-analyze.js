@@ -300,6 +300,8 @@ function songMeasures(song){
   return {measures,time:time||'',fifths};
 }
 
-const api={analyzePage,buildSongs,songMeasures,findStaves,NAMES};
+/* Sube cuando cambia la forma de leer las partituras: los PDF guardados se vuelven a transcribir solos */
+const VERSION=2;
+const api={analyzePage,buildSongs,songMeasures,findStaves,NAMES,VERSION};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PartituraAnalyze=api;
 })(typeof self!=='undefined'?self:this);

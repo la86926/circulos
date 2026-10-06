@@ -129,7 +129,7 @@ const SONG_STEPS = [
   { title: 'Elige el instrumento', text: 'Guitarra, ukelele o piano: la partitura cambia al instante.',
     ring: '.tab-inst', radius: 20, hop: '.tab-inst [data-inst]', hopY: '-4px',
     at: '.tab-inst [data-inst]:not(.is-on)', tap: { sel: '.tab-inst [data-inst]' }, ok: '¡Cambiado!' },
-  { title: 'Escucha la melodía', text: 'Toca para dar Play. Vuelve a tocar para pausar; al dar Play otra vez, continúa desde donde quedó.',
+  { title: 'Escucha la melodía', text: 'Toca para dar Play. Vuelve a tocar para pausar; al dar Play otra vez, continúa desde donde quedó.' + (matchMedia('(hover: hover) and (pointer: fine)').matches ? ' También con la barra espaciadora.' : ''),
     ring: '#tabPlay', radius: 26, hop: '#tabPlay', hopY: '-4px', at: '#tabPlay', tap: { sel: '#tabPlay' }, ok: '¡Suena!' },
   { title: 'La velocidad', text: 'Desliza para tocar más lento o más rápido. Empieza en 100.',
     ring: '.tab-tempo', radius: 16, pad: 6, at: '#tabTempo', gesture: 'swipe', tap: { sel: '#tabTempo', ev: 'input' }, ok: '¡Ajustada!' },
