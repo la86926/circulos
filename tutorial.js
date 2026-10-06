@@ -81,7 +81,7 @@ function convSteps() {
     { title: 'Elige tu partitura', text: 'Toca aquí y elige el PDF de tus partituras. Se lee en tu dispositivo: no se sube a internet.',
       ring: '#tabDrop', radius: 22, hop: '#tabDrop', hopY: '-4px', at: '#tabDrop', gesture: 'tap' },
     { modal: true, title: '¡Listo para empezar!',
-      text: 'Cuando elijas tu PDF verás sus canciones y quedará guardado en «Mis partituras», junto a los que subas después. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
+      text: 'Cuando elijas tu PDF, aparecerá en «Mis partituras» junto a los que subas después; tócalo para ver sus canciones. Para repetir esta guía, toca el botón “?” o búscala en el menú.',
       next: 'Terminar', keepFab: true, at: '.tuto-fab', hop: '.tuto-fab', hopY: '-6px', gesture: 'tap' }];
   if (st === 'lib') return [intro,
     { title: 'Mis partituras', text: 'Aquí quedan guardados todos los PDF que subes, para no tener que buscarlos otra vez.',
@@ -93,7 +93,7 @@ function convSteps() {
     { title: 'Abre uno', text: 'Toca un PDF para ver sus canciones.',
       ring: '#tabLibList .lib-row', radius: 18, at: '#tabLibList .lib-text', tap: { sel: '#tabLibList .lib-open' }, ok: '¡Abierto!' }];
   return [intro,
-    { title: 'Volver a Mis partituras', text: 'Con esta flecha regresas a la lista de todos tus PDF.',
+    { title: 'Volver a Mis partituras', text: 'Con este botón regresas a la lista de todos tus PDF.',
       ring: '#tabLibBack', radius: 24, pad: 4, hop: '#tabLibBack', hopY: '-4px', at: '#tabLibBack', gesture: 'tap' },
     { title: 'Busca una canción', text: 'Escribe el número o el nombre de la canción.',
       ring: '#tabSearch', radius: 16, hop: '#tabSearch', hopY: '-4px', at: '#tabSearch',
@@ -134,6 +134,8 @@ const SONG_STEPS = [
     ring: '#tabSheet .tab-line', radius: 14, at: '#tabSheet .tl-hit', tap: { sel: '.tl-hit' }, ok: '¡Desde ahí!' },
   { title: 'Otro PDF desde aquí', text: 'No hace falta volver atrás: con este botón subes otro PDF desde la misma canción. Se guarda en «Mis partituras».',
     ring: '#tabOtherSong', radius: 24, pad: 4, hop: '#tabOtherSong', hopY: '-4px', at: '#tabOtherSong', gesture: 'tap' },
+  { title: 'Volver a las canciones', text: 'Con este botón regresas a la lista de canciones de este PDF.',
+    ring: '#tabBack', radius: 24, pad: 4, hop: '#tabBack', hopY: '-4px', at: '#tabBack', gesture: 'tap' },
   { title: 'Posición en el mástil', text: 'En guitarra y ukelele eliges dónde tocar: a la mitad del mástil, cerca de la cejuela o usando cuerdas al aire.',
     ring: '#tabModeWrap', radius: 16, pad: 5, hop: '#tabMode', hopY: '-4px', at: '#tabMode',
     tap: { sel: '#tabMode', ev: 'change' }, ok: '¡Cambiada!', onEnter: () => instOn('guitar', true), onExit: instBack },

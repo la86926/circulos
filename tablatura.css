@@ -129,6 +129,15 @@ html[data-theme=dark] .tab-fab button{border-color:rgba(255,255,255,.2)}
 .lib-row{position:relative;display:flex;align-items:center;max-height:140px;transition:opacity .24s ease,transform .24s ease}
 .lib-row+.lib-row::before{content:"";position:absolute;top:0;left:76px;right:0;height:1px;background:var(--line)}
 .lib-row.is-leaving{opacity:0;transform:translateX(-28px)}
+.lib-new{display:inline-block;margin-right:8px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#7fb2f0,#5b8fdb);color:#fff;font-size:11px;font-weight:800;letter-spacing:.02em;vertical-align:2px}
+.lib-row.is-fresh{background:linear-gradient(90deg,rgba(91,143,219,.10),rgba(91,143,219,0) 70%)}
+.lib-row.is-fresh .lib-icon{animation:libGlow 2.6s ease-in-out infinite}
+.lib-row.is-enter{animation:libEnter .7s cubic-bezier(.2,.9,.25,1.15) both}
+.lib-row.is-enter .lib-icon{animation:libPop .7s cubic-bezier(.34,1.56,.64,1) both,libGlow 2.6s ease-in-out .7s infinite}
+@keyframes libEnter{from{opacity:0;transform:translateY(-14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes libPop{0%{transform:scale(.6) rotate(-8deg)}60%{transform:scale(1.08) rotate(2deg)}100%{transform:none}}
+@keyframes libGlow{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 5px 12px rgba(60,110,190,.22),0 0 0 0 rgba(91,143,219,0)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 5px 12px rgba(60,110,190,.22),0 0 0 7px rgba(91,143,219,.16)}}
+@media(prefers-reduced-motion:reduce){.lib-row.is-enter,.lib-row.is-enter .lib-icon,.lib-row.is-fresh .lib-icon{animation:none}}
 .lib-open{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:12px 4px 12px 16px;border:0;background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color .15s}
 .lib-open:active{background:var(--surface2)}
 @media(hover:hover){.lib-open:hover{background:color-mix(in srgb,var(--surface2) 60%,transparent)}}
@@ -147,8 +156,18 @@ html[data-theme=dark] .tab-fab button{border-color:rgba(255,255,255,.2)}
 .lib-del svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 html[data-theme=dark] .lib-now{color:#9dc4f5}
 html[data-theme=dark] .lib-del:hover,html[data-theme=dark] .lib-del:active{background:rgba(229,72,77,.16)}
-.tab-list-head{display:flex;align-items:center;gap:12px;min-width:0}
-.tab-list-head .tab-back{margin-top:0}
+.tab-list-head{display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-width:0}
+/* Volver, al estilo de iOS: flecha + nombre de la sección, en una píldora azul suave */
+.tab-backlink{display:inline-flex;align-items:center;gap:1px;flex:0 0 auto;height:38px;padding:0 15px 0 7px;border:0;border-radius:999px;background:#eaf2fd;color:#2f64a8;font:inherit;font-size:15px;font-weight:750;letter-spacing:-.01em;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.tab-backlink svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s ease}
+@media(hover:hover){.tab-backlink:hover{background:#dde9fb}.tab-backlink:hover svg{transform:translateX(-2px)}}
+.tab-backlink:active{transform:scale(.95)}
+html[data-theme=dark] .tab-backlink{background:#1a2638;color:#9dc4f5}
+html[data-theme=dark] .tab-backlink:hover{background:#22314a}
+.tab-song-head{flex-wrap:wrap;align-items:center}
+.tab-song-head .tab-backlink{order:0}
+.tab-song-head .tab-newpdf-song{order:1;margin-left:auto;margin-top:0}
+.tab-song-head .tab-song-titles{order:2;flex:1 1 100%}
 /* Confirmación para eliminar (hoja de acciones de iOS) */
 .lib-sheet{z-index:96}
 .lib-sheet .app-sheet-card.lib-confirm{display:grid;gap:8px;width:min(420px,calc(100% - 16px));padding:0;border:0;background:transparent;box-shadow:none}

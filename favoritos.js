@@ -54,6 +54,10 @@ const KEY_MOVED='circulos-moved-to',KEY_MOVED_NICK='circulos-moved-nick';
    viaja a los demás dispositivos de ese ID. Sin ID, nada de esto sale del dispositivo. */
 const KEY_CONV='circulos-conv',KEY_CONV_ID='circulos-conv-id',KEY_BOOK='circulos-libro',KEY_BOOKS='circulos-libros',BOOK_PREFIX='circuloslibro-',PART=700000;
 let books=null;                    // «Mis partituras» del ID: [{id,parts,name,songs,at}]
+/* Velocidad que se dejó en cada canción del Convertidor (tablatura.js la guarda en «tab-tempos») */
+const KEY_TEMPOS='tab-tempos',KEY_TEMPOS_AT='tab-tempos-at';
+const temposAt=()=>Number(store.get(KEY_TEMPOS_AT))||0;
+const remoteTemposAt=d=>Number(d&&d.l1&&d.l1.storage&&d.l1.storage[KEY_TEMPOS_AT])||0;
 const sessionConv=()=>{try{return sessionStorage.getItem('circulos-convertidor')==='1';}catch(e){return false;}};
 const convOn=()=>!!nick&&(store.get(KEY_CONV_ID)===nick.toLowerCase()||sessionConv());
 function readExtras(d){
@@ -62,6 +66,10 @@ function readExtras(d){
     const was=store.get(KEY_CONV_ID)===nick.toLowerCase();
     store.set(KEY_CONV_ID,nick.toLowerCase());
     if(!was)document.dispatchEvent(new CustomEvent('circulos:conv-unlock'));
+  }
+  if(typeof st[KEY_TEMPOS]==='string'&&remoteTemposAt(d)>temposAt()){   // velocidades más recientes en otro dispositivo
+    store.set(KEY_TEMPOS,st[KEY_TEMPOS]);store.set(KEY_TEMPOS_AT,String(remoteTemposAt(d)));
+    document.dispatchEvent(new CustomEvent('circulos:tempos'));
   }
   let list=null;
   try{
@@ -137,6 +145,7 @@ async function connect(name,{silent=false,mode=''}={}){
   nick=name;store.set(KEY_NICK,nick);
   if(remote)readExtras(snap.data());
   const needConv=convOn()&&!(remote&&snap.data().l1?.storage?.[KEY_CONV]==='1');
+  const needTempos=temposAt()>remoteTemposAt(snap.data());
   if(!remote){await upload();}                                       // ID nuevo: sube lo de este dispositivo
   else if(firstTimeHere){                                            // primera vez en este dispositivo: se juntan ambos
     const joined=merge(remote.list,favs),changed=joined.length!==remote.list.length;
@@ -145,7 +154,7 @@ async function connect(name,{silent=false,mode=''}={}){
   }
   else if(remote.at>=localAt())applyRemote(remote);                  // la nube es más reciente
   else await upload();                                               // este dispositivo es más reciente
-  if(remote&&needConv)await upload();                                 // la contraseña se puso aquí antes de entrar con el ID
+  if(remote&&(needConv||needTempos))await upload();                  // contraseña o velocidades puestas aquí antes de entrar con el ID
   store.set(KEY_SYNCED,id);
   if(!remote){books=[];document.dispatchEvent(new CustomEvent('circulos:cloud-books',{detail:books}));}
   listen();
@@ -182,6 +191,7 @@ async function upload(){
   const storage={[KEY_FAVS]:JSON.stringify(favs),[KEY_AT]:String(at)};
   if(convOn())storage[KEY_CONV]='1';
   if(books){storage[KEY_BOOKS]=JSON.stringify(books);storage[KEY_BOOK]='';}
+  if(temposAt()){storage[KEY_TEMPOS]=store.get(KEY_TEMPOS)||'{}';storage[KEY_TEMPOS_AT]=String(temposAt());}
   const l1={storage,page:{}};
   const meta={timestamp:fs.serverTimestamp(),updatedBy:clientId,schemaVersion:1};
   const full=()=>fs.setDoc(ref,{l1,l2:{storage:{},page:{}},...meta});
@@ -233,6 +243,13 @@ document.addEventListener('circulos:conv-ok',()=>{
   if(ref)upload().catch(err=>console.error('Favoritos:',err));else reconnect();
 });
 
+/* Cambios del Convertidor (velocidades): se suben un momento después, sin tocar la hora de los favoritos */
+let extrasTimer=0;
+function syncSoon(){
+  if(!nick)return;
+  clearTimeout(extrasTimer);
+  extrasTimer=setTimeout(()=>{if(!ref){reconnect();return;}upload().then(()=>setCloud('ok')).catch(err=>{console.error('Favoritos:',err);setCloud('error',errorText(err));});},700);
+}
 function scheduleUpload(){
   store.set(KEY_AT,String(Date.now()));                              // hora de este cambio
   if(!nick)return;
@@ -408,7 +425,7 @@ const ICON_FAV='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5s-6
   if(pageEl)a.setAttribute('aria-current','page');
   a.innerHTML=`<span class="app-choice-icon">${ICON_FAV}</span><strong>Favoritos</strong><small>Tus acordes guardados, en todos tus dispositivos.</small>`;
   picker.appendChild(a);})();
-window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,get books(){return books;}};
+window.CirculosFavs={open:openSheet,has,toggle,toggleKey,isOpen:()=>!!pageEl,get nick(){return nick;},get count(){return favs.length;},saveBook,loadBook,removeBook,syncSoon,get books(){return books;}};
 
 /* En la página de Favoritos: dibuja la cuenta, las pestañas y los acordes guardados */
 if(pageEl){

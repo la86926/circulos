@@ -23,7 +23,7 @@ const DB={
 /* ───────── Mis partituras: cada PDF leído queda guardado en el dispositivo ─────────
    index   : [{id,name,songs,size,added,local,cloudId,parts}]  (local = las canciones ya están en este dispositivo)
    book:ID : el cancionero convertido        current : el que se abrió por última vez */
-let lib=[],curId=null;
+let lib=[],curId=null,freshId=null,freshEnter=false;          // freshId: el PDF recién subido (se anima hasta abrir alguno)
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const prettyName=n=>String(n||'Partitura').replace(/\.pdf$/i,'');
 const saveIndex=()=>DB.set('index',lib);
@@ -38,12 +38,17 @@ async function loadLib(){
     await DB.set('index',idx);await DB.del('last');
   }
   lib=idx;curId=await DB.get('current');
+  try{                                                              // velocidades guardadas con el formato anterior
+    const t=JSON.parse(store.get('tab-tempos','{}'))||{};let moved=false;
+    for(const k of Object.keys(t)){const m=k.match(/^([^:|#]+):(.+)$/);const e=m&&lib.find(x=>x.id===m[1]);if(e){t[`${prettyName(e.name)}|${e.songs}#${m[2]}`]=t[k];delete t[k];moved=true;}}
+    if(moved){store.set('tab-tempos',JSON.stringify(t));store.set('tab-tempos-at',String(Date.now()));}
+  }catch(e){}
 }
 async function addBook(b){
   let e=lib.find(x=>x.name===b.name&&(x.size===b.size||(!x.size&&x.songs===b.songs.length)));   // el mismo PDF otra vez: no se duplica
   if(e){Object.assign(e,{songs:b.songs.length,size:b.size||e.size,local:true,added:Date.now()});lib=[e,...lib.filter(x=>x!==e)];}
   else{e={id:newId(),name:b.name,songs:b.songs.length,size:b.size||0,added:Date.now(),local:true};lib.unshift(e);}
-  await DB.set('book:'+e.id,b);curId=e.id;DB.set('current',e.id);await saveIndex();
+  await DB.set('book:'+e.id,b);await saveIndex();
   return e;
 }
 
@@ -72,7 +77,8 @@ async function readPdf(file){
     book={name:file.name,size:file.size,songs};
     const entry=await addBook(book);
     $('tabSearch').value='';
-    showList();
+    freshId=entry.id;freshEnter=true;
+    showLib();scrollTo({top:Math.max(0,$('tabLib').offsetTop-90),behavior:'smooth'});
     toast(`Listo: ${songs.length} ${songs.length===1?'canción guardada':'canciones guardadas'} en Mis partituras`);
     cloudSave(entry);
   }catch(err){
@@ -109,19 +115,22 @@ function showLib(){
   KB.refresh();FAB.refresh();history.replaceState(null,'','#');renderLib();
 }
 function renderLib(){
+  lib.sort((a,b)=>(b.added||0)-(a.added||0));                    // los nuevos siempre arriba
   const n=lib.length,F=window.CirculosFavs;
   $('tabLibSub').textContent=`${n} ${n===1?'PDF':'PDF'} · ${F?.nick?`también en tu ID «${F.nick}»`:'guardados en este dispositivo'}`;
-  $('tabLibList').innerHTML=lib.map(e=>`<div class="lib-row${e.id===curId?' is-current':''}" role="listitem">
+  $('tabLibList').innerHTML=lib.map(e=>`<div class="lib-row${e.id===curId?' is-current':''}${e.id===freshId?' is-fresh'+(freshEnter?' is-enter':''):''}" role="listitem">
       <button class="lib-open" type="button" data-open="${e.id}">
         <span class="lib-icon">${ICON_DOC}</span>
-        <span class="lib-text"><strong>${esc(prettyName(e.name))}</strong><small>${e.id===curId?'<b class="lib-now">Abierta</b> · ':''}${e.songs} ${e.songs===1?'canción':'canciones'} · ${fmtDate(e.added)}${!e.local?` · <span class="lib-cloud">${ICON_CLOUD}en tu ID</span>`:''}</small></span>
+        <span class="lib-text"><strong>${e.id===freshId?'<span class="lib-new">Nuevo</span>':''}${esc(prettyName(e.name))}</strong><small>${e.id===curId?'<b class="lib-now">Abierta</b> · ':''}${e.songs} ${e.songs===1?'canción':'canciones'} · ${fmtDate(e.added)}${!e.local?` · <span class="lib-cloud">${ICON_CLOUD}en tu ID</span>`:''}</small></span>
         <svg class="lib-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="lib-del" type="button" data-del="${e.id}" aria-label="Eliminar ${esc(prettyName(e.name))}">${ICON_TRASH}</button>
     </div>`).join('');
+  freshEnter=false;                                                  // la entrada se anima una sola vez
 }
 async function openBook(id){
   const e=lib.find(x=>x.id===id);if(!e)return;
+  freshId=null;                                                     // al entrar a cualquier PDF, el «Nuevo» se va
   let b=await DB.get('book:'+id);
   if(!b&&e.cloudId){
     const F=window.CirculosFavs;if(!F?.nick){toast('Entra con tu ID en Favoritos para traer este PDF');return;}
@@ -269,7 +278,7 @@ function keyName(f){const L=latin();if(f>=0)return(L?KEY_NAMES:KEY_EN)[f]||'';re
 
 function openSong(i){
   song=book.songs[i];stop();$('tabKb').checked=true;
-  songKey=`${curId||'pdf'}:${song.number??'i'+i}`;applyTempo();
+  songKey=tempoKey(curId,song.number??'i'+i);applyTempo();
   $('tabListPanel').hidden=true;$('tabSong').hidden=false;
   $('tabSongNum').textContent=song.number!=null?`Canción ${song.number}`:'';
   $('tabSongTitle').textContent=song.title;
@@ -516,18 +525,24 @@ const KB=(()=>{
 })();
 
 /* ───────── Escuchar ───────── */
-/* Velocidad: cada canción recuerda la suya; las que no se tocaron empiezan en 100 */
+/* Velocidad: cada canción recuerda la suya; las que no se tocaron empiezan en 100.
+   La clave es el nombre del PDF + cuántas canciones tiene + el número de canción, igual en todos los
+   dispositivos; con ID de Favoritos viaja a los demás (favoritos.js guarda «tab-tempos» en la nube). */
 const tempo=$('tabTempo');tempo.value=prefs.tempo;$('tabTempoVal').textContent=prefs.tempo;
 let songKey='';
 const tempos=()=>{try{return JSON.parse(store.get('tab-tempos','{}'))||{};}catch(e){return {};}};
+function tempoKey(id,n){const e=lib.find(x=>x.id===id);return e?`${prettyName(e.name)}|${e.songs}#${n}`:`pdf#${n}`;}
 function applyTempo(){const v=tempos()[songKey]||prefs.tempo;tempo.value=v;$('tabTempoVal').textContent=v;}
 tempo.addEventListener('input',()=>{
   $('tabTempoVal').textContent=tempo.value;
   if(!songKey)return;
   const t=tempos(),v=+tempo.value;
   if(v===prefs.tempo)delete t[songKey];else t[songKey]=v;
-  store.set('tab-tempos',JSON.stringify(t));
+  store.set('tab-tempos',JSON.stringify(t));store.set('tab-tempos-at',String(Date.now()));
+  window.CirculosFavs?.syncSoon?.();
 });
+/* Llegaron velocidades desde otro dispositivo: si no está sonando, se aplica a la canción abierta */
+document.addEventListener('circulos:tempos',()=>{if(songKey&&!playing)applyTempo();});
 let timer=0,playing=false,paused=false,pos=0,cur=-1,soundReady=false,nowEl=null;
 const ICON_PLAY='M8 5.5v13l10.5-6.5Z',ICON_PAUSE='M7 5.5h3.6v13H7ZM13.4 5.5H17v13h-3.6Z';
 function ui(){
@@ -634,7 +649,7 @@ async function cloudSave(entry){
   const F=window.CirculosFavs;
   if(!entry||!F?.nick||entry.cloudId)return;
   const b=await DB.get('book:'+entry.id);if(!b)return;
-  try{const m=await F.saveBook(b);if(m){entry.cloudId=m.id;entry.parts=m.parts;entry.upAt=Date.now();await saveIndex();if(!$('tabLib').hidden)renderLib();toast(`«${prettyName(entry.name)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}}
+  try{const m=await F.saveBook(b);if(m){entry.cloudId=m.id;entry.parts=m.parts;entry.upAt=Date.now();await saveIndex();toast(`«${prettyName(entry.name)}» quedó en tu ID: aparecerá en tus otros dispositivos`);}}
   catch(err){console.error('Tablatura:',err);toast('No se pudieron guardar tus partituras en la nube');}
 }
 let queued=null;
