@@ -128,13 +128,13 @@ const SONG_STEPS = [
     tap: { sel: '#tabMode', ev: 'change' }, ok: '¡Cambiada!', onEnter: () => instOn('guitar', true), onExit: instBack },
   { title: 'El teclado flotante',
     text: 'En piano aparece este teclado y la tecla que suena se pinta de rosado. Mira: se arrastra con el dedo a donde quieras y se agranda o achica con dos dedos. Con la X lo quitas.',
-    ring: '#kbFloat', radius: 20, pad: 4, at: '#kbFloat .kb-grip', gesture: 'drag',
+    ring: '#kbFloat', radius: 20, pad: 4, at: '#kbFloat .kb-grip', gesture: 'drag', card: 'bottom',
     onEnter: () => { instOn('piano', true); const k = $('#tabKb'); if (k && !k.checked) { k.checked = true; k.dispatchEvent(new Event('change')); }
       const t = token; setTimeout(() => { if (active && t === token) window.CirculosTablatura?.kbDemo(true); }, 750); },
     onExit: () => { window.CirculosTablatura?.kbDemo(false); instBack(); } },
   { title: 'El botón flotante',
     text: 'Al bajar por la partitura aparece este botón a la izquierda. Mira: lo puedes arrastrar a donde quieras. Tócalo para dar Play o Pausa sin volver arriba.',
-    ring: '#tabFab button', radius: 32, pad: 4, at: '#tabFab button', gesture: 'drag',
+    ring: '#tabFab button', radius: 32, pad: 4, at: '#tabFab button', gesture: 'drag', card: 'top',
     tap: { sel: '#tabFab button' }, ok: '¡Así de fácil!',
     onEnter: () => { fabShow(); const t = token; setTimeout(() => { if (active && t === token) window.CirculosTablatura?.fabDemo(true); }, 1100); },
     onExit: () => window.CirculosTablatura?.fabDemo(false) },
@@ -558,6 +558,7 @@ function frame() {
         else if (freeL >= 280) side = { left: 20, w: Math.min(380, freeL - 10) };
       }
     } else top = false;
+    if (s.card) { top = s.card === 'top'; side = null; }      // pasos con algo que se mueve: la tarjeta queda quieta
     cardEl.classList.toggle('at-top', top && !side);
     cardEl.classList.toggle('at-side', !!side);
     if (side) { cardEl.style.setProperty('--side-left', side.left + 'px'); cardEl.style.setProperty('--side-w', side.w + 'px'); }
