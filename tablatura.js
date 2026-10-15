@@ -100,9 +100,10 @@ async function readPdf(file){
   }
 }
 /* Otro PDF: desde la lista o desde la canción se abre el selector; si se elige un archivo, se muestra el avance */
-function openLoad(){
+function openLoad(push=true){
   stop();$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();
-  history.replaceState(null,'','#');scrollTo({top:Math.max(0,$('tabLoad').offsetTop-90),behavior:'smooth'});
+  if(push&&lib.length)Nav.push('load','#');
+  scrollTo({top:Math.max(0,$('tabLoad').offsetTop-90),behavior:'smooth'});
 }
 $('tabFile').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if($('tabLoad').hidden)openLoad();readPdf(f);});
 const drop=$('tabDrop');
@@ -126,9 +127,9 @@ const outdated=e=>e.local&&(e.ver||1)<VER;                          // transcrit
 const fmtDate=t=>{try{return new Intl.DateTimeFormat('es',{day:'numeric',month:'short',year:'numeric'}).format(new Date(t)).replace('.','');}catch(e){return '';}};
 function showLib(){
   stop();
-  if(!lib.length){$('tabLib').hidden=true;$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();return;}
+  if(!lib.length){$('tabLib').hidden=true;$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLoad').hidden=false;KB.refresh();FAB.refresh();Nav.root();return;}
   $('tabLoad').hidden=true;$('tabListPanel').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=false;
-  KB.refresh();FAB.refresh();history.replaceState(null,'','#');renderLib();
+  KB.refresh();FAB.refresh();renderLib();Nav.root();
 }
 function renderLib(){
   lib.sort((a,b)=>(b.added||0)-(a.added||0));                    // los nuevos siempre arriba
@@ -145,7 +146,7 @@ function renderLib(){
     </div>`).join('');
   freshEnter=false;                                                  // la entrada se anima una sola vez
 }
-async function openBook(id){
+async function openBook(id,push=true){
   const e=lib.find(x=>x.id===id);if(!e)return;
   freshId=null;                                                     // al entrar a cualquier PDF, el «Nuevo» se va
   let b=await DB.get('book:'+id);
@@ -158,7 +159,8 @@ async function openBook(id){
   }
   if(!b){toast('No se encontraron las canciones de este PDF');return;}
   book=b;curId=id;DB.set('current',id);
-  $('tabSearch').value='';showList();scrollTo({top:Math.max(0,$('tabListPanel').offsetTop-90),behavior:'smooth'});
+  $('tabSearch').value='';listFilter='all';showList();scrollTo({top:Math.max(0,$('tabListPanel').offsetTop-90),behavior:'smooth'});
+  if(push)Nav.push('list','#',{book:id});
 }
 $('tabLibList').addEventListener('click',e=>{
   const u=e.target.closest('[data-upd]');if(u){e.stopPropagation();askUpdate(u.dataset.upd);return;}
@@ -242,20 +244,48 @@ async function removeBook(id,{fromCloud=false}={}){
 /* ───────── Lista de canciones ───────── */
 const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 function showList(){
-  $('tabLoad').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=true;$('tabListPanel').hidden=false;
+  stop();$('tabLoad').hidden=true;$('tabSong').hidden=true;$('tabLib').hidden=true;$('tabListPanel').hidden=false;KB.refresh();FAB.refresh();Head.set(null);
   $('tabListTitle').textContent=dispName(lib.find(x=>x.id===curId))||prettyName(book.name);
   $('tabListSub').textContent=`${book.songs.length} canciones`;
   renderList();
 }
+/* ───────── Canciones favoritas: con corazón, en este dispositivo y con ID en todos ───────── */
+const ICON_HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3s-7.8-4.7-7.8-10.4A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 7.8 2.6c0 5.7-7.8 10.4-7.8 10.4Z"/></svg>';
+let listFilter='all';
+const favKey=i=>tempoKey(curId,book.songs[i].number??'i'+i);
+const tabFavs=()=>{try{return new Set(JSON.parse(store.get('tab-favs','[]'))||[]);}catch(e){return new Set();}};
+const isFav=i=>!!book&&tabFavs().has(favKey(i));
+function setFav(i,on){
+  const f=tabFavs(),k=favKey(i);if(on)f.add(k);else f.delete(k);
+  store.set('tab-favs',JSON.stringify([...f]));store.set('tab-favs-at',String(Date.now()));
+  window.CirculosFavs?.syncSoon?.();
+}
+function favCount(){if(!book)return 0;const f=tabFavs();let n=0;book.songs.forEach((s,i)=>{if(f.has(favKey(i)))n++;});return n;}
+function paintFav(btn,on,name){btn.innerHTML=ICON_HEART;btn.classList.toggle('is-on',on);btn.setAttribute('aria-pressed',String(on));btn.setAttribute('aria-label',(on?'Quitar de favoritos':'Agregar a favoritos')+(name?': '+name:''));}
 function renderList(){
-  const q=norm($('tabSearch').value.trim());
-  const list=book.songs.map((s,i)=>({s,i})).filter(({s})=>!q||norm((s.number??'')+' '+s.title).includes(q)||String(s.number)===q);
-  $('tabList').innerHTML=list.map(({s,i})=>`<button class="tab-item" type="button" data-i="${i}"><b>${s.number??'·'}</b><span>${esc(s.title)}</span></button>`).join('')||'<p class="tab-empty">Sin resultados.</p>';
+  const q=norm($('tabSearch').value.trim()),f=tabFavs(),n=favCount();
+  if(!n)listFilter='all';
+  $('tabFilter').hidden=!n;$('tabFavCount').textContent=n;
+  $('tabFilter').querySelectorAll('[data-f]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.f===listFilter)));
+  const list=book.songs.map((s,i)=>({s,i,fav:f.has(favKey(i))})).filter(({s,fav})=>(listFilter!=='fav'||fav)&&(!q||norm((s.number??'')+' '+s.title).includes(q)||String(s.number)===q));
+  $('tabList').innerHTML=list.map(({s,i,fav})=>`<div class="tab-item" role="button" tabindex="0" data-i="${i}"><b>${s.number??'·'}</b><span>${esc(s.title)}</span><button class="tab-fav${fav?' is-on':''}" type="button" data-fav="${i}" aria-pressed="${fav}" aria-label="${fav?'Quitar de favoritos':'Agregar a favoritos'}">${ICON_HEART}</button></div>`).join('')||`<p class="tab-empty">${listFilter==='fav'?'Ninguna favorita con esa búsqueda.':'Sin resultados.'}</p>`;
 }
 $('tabSearch').addEventListener('input',renderList);
-$('tabList').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(b)openSong(+b.dataset.i);});
+document.querySelector('#tabFilter .tf-heart').innerHTML=ICON_HEART;
+$('tabFilter').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b||b.dataset.f===listFilter)return;listFilter=b.dataset.f;renderList();});
+$('tabList').addEventListener('click',e=>{
+  const h=e.target.closest('[data-fav]');
+  if(h){const i=+h.dataset.fav,on=!isFav(i);setFav(i,on);h.classList.toggle('is-on',on);h.classList.add('pop');
+    if(on)toast('Agregada a favoritas');
+    setTimeout(renderList,listFilter==='fav'&&!on?180:260);return;}
+  const b=e.target.closest('[data-i]');if(b)openSong(+b.dataset.i);
+});
+$('tabList').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.tab-item')){e.preventDefault();openSong(+e.target.dataset.i);}});
+$('tabSongFav').addEventListener('click',()=>{if(!song)return;const i=book.songs.indexOf(song);if(i<0)return;const on=!isFav(i);setFav(i,on);paintFav($('tabSongFav'),on);Head.sync();$('tabSongFav').classList.add('pop');setTimeout(()=>$('tabSongFav').classList.remove('pop'),400);toast(on?'Agregada a favoritas':'Quitada de favoritas');});
+/* Llegaron favoritas desde otro dispositivo */
+document.addEventListener('circulos:tabfavs',()=>{if(!book)return;if(!$('tabListPanel').hidden)renderList();if(song&&!$('tabSong').hidden){const i=book.songs.indexOf(song);if(i>=0)paintFav($('tabSongFav'),isFav(i));Head.sync();}});
 document.querySelectorAll('.tab-newpdf').forEach(b=>b.addEventListener('click',()=>$('tabFile').click()));
-$('tabBack').addEventListener('click',()=>{stop();$('tabSong').hidden=true;$('tabListPanel').hidden=false;KB.refresh();FAB.refresh();history.replaceState(null,'','#');});
+$('tabBack').addEventListener('click',()=>{if(Nav.tv()==='song')history.back();else{showList();Nav.replace('list','#',{book:curId});}});
 
 /* ───────── Digitación: dónde tocar cada nota ─────────
    Guitarra: cuerdas de la 1.ª (MI agudo, índice 0) a la 6.ª (MI grave, índice 5).
@@ -332,17 +362,19 @@ const KEY_NAMES=['DO','SOL','RE','LA','MI','SI','FA♯','DO♯'],KEY_FLATS=['DO'
 const KEY_EN=['C','G','D','A','E','B','F♯','C♯'],KEY_EN_F=['C','F','B♭','E♭','A♭','D♭','G♭','C♭'];
 function keyName(f){const L=latin();if(f>=0)return(L?KEY_NAMES:KEY_EN)[f]||'';return(L?KEY_FLATS:KEY_EN_F)[-f]||'';}
 
-function openSong(i){
+function openSong(i,how='push'){
   song=book.songs[i];stop();$('tabKb').checked=true;
   songKey=tempoKey(curId,song.number??'i'+i);applyTempo();
   $('tabListPanel').hidden=true;$('tabSong').hidden=false;
-  $('tabSongNum').textContent=song.number!=null?`Canción ${song.number}`:'';
-  $('tabSongTitle').textContent=song.title;
+  $('tabSongNum').hidden=song.number==null;$('tabSongNum').querySelector('b').textContent=song.number??'';
+  $('tabSongNum').classList.toggle('is-long',String(song.number??'').length>2);
+  $('tabSongTitle').textContent=song.title;paintFav($('tabSongFav'),isFav(i),song.title);Head.set(song);
   const verses=Math.max(0,...song.measures.flatMap(m=>m.notes.map(n=>(n.lyrics||[]).length)));
   $('tabVerse').innerHTML='<option value="-1">Sin letra</option>'+Array.from({length:verses},(_,k)=>`<option value="${k}">Estrofa ${k+1}</option>`).join('');
   $('tabVerse').value=String(Math.min(prefs.verse,verses-1));
   $('tabSongInfo').textContent=[song.time&&`Compás ${song.time}`,`Tonalidad con ${song.fifths>0?song.fifths+' ♯':song.fifths<0?(-song.fifths)+' ♭':'sin alteraciones'} (${keyName(song.fifths)} mayor o su relativa menor)`,`páginas ${song.pages.join(', ')}`].filter(Boolean).join(' · ');
-  history.replaceState(null,'','#'+(song.number??i));
+  const hash='#'+(song.number??i);
+  if(how==='push')Nav.push('song',hash,{book:curId,i});else if(how==='replace')Nav.replace('song',hash,{book:curId,i});
   render();scrollTo({top:$('tabSong').offsetTop-80,behavior:'smooth'});
   document.dispatchEvent(new CustomEvent('circulos:tabsong'));
 }
@@ -615,7 +647,7 @@ tempo.addEventListener('input',()=>{
 });
 /* Llegaron velocidades desde otro dispositivo: si no está sonando, se aplica a la canción abierta */
 document.addEventListener('circulos:tempos',()=>{if(songKey&&!playing)applyTempo();});
-let timer=0,playing=false,paused=false,pos=0,cur=-1,soundReady=false,nowEl=null;
+let playing=false,paused=false,pos=0,cur=-1,nowEl=null;
 const ICON_PLAY='M8 5.5v13l10.5-6.5Z',ICON_PAUSE='M7 5.5h3.6v13H7ZM13.4 5.5H17v13h-3.6Z';
 function ui(){
   const b=$('tabPlay');b.classList.toggle('is-on',playing);
@@ -623,40 +655,89 @@ function ui(){
   b.querySelector('path').setAttribute('d',playing?ICON_PAUSE:ICON_PLAY);
   FAB.sync();
 }
+/* Reproducción con el reloj del audio: las notas se programan por adelantado, así siguen sonando aunque se
+   cambie de pestaña o de app (en segundo plano se programa de una vez todo lo que falta de la canción).
+   En pantalla, la nota marcada se sincroniza con ese reloj. */
+const P=()=>window.CirculosPiano;
+let run=null,tick=0,lastLine=-1;
+const secs=e=>e.dur*60/(+tempo.value);
+function pump(all){
+  if(!run)return;
+  const horizon=all||document.hidden?Infinity:P().time()+1.5;
+  while(run.next<events.length&&run.t<horizon){
+    const i=run.next,e=events[i];
+    if(!e.rest&&e.pos&&(!e.tied||i===run.first))P().schedule(e.pos.p,run.t,{velocity:.8});
+    run.line.push({i,t:run.t});run.t+=secs(e);run.next++;
+  }
+}
+function mark(i){
+  if(i===cur)return;cur=i;
+  if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}
+  const e=events[i];if(!e)return;
+  KB.light(!e.rest&&e.pos?e.pos.p:null);
+  if(!e.rest&&e.pos){
+    const el=document.querySelector(`.tl-note[data-i="${e.idx}"]`);
+    if(el){el.classList.add('is-now');nowEl=el;if(e.line!==lastLine){lastLine=e.line;if(!document.hidden)el.closest('svg').scrollIntoView({block:'center',behavior:'smooth'});}}
+  }
+}
+function step(){
+  if(!playing||!run)return;
+  pump();
+  const now=P().time();
+  if(run.next>=events.length&&now>=run.t){stop();return;}
+  let k=-1;for(let j=run.line.length-1;j>=0;j--)if(run.line[j].t<=now){k=j;break;}
+  if(k>=0){mark(run.line[k].i);if(k>40)run.line.splice(0,k-1);}
+}
 function halt(keepMark){
-  playing=false;clearTimeout(timer);window.CirculosPiano?.stopAll?.();
+  playing=false;run=null;clearInterval(tick);P()?.stopAll?.();P()?.hold?.(false);
   if(!keepMark){KB.light(null);if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}}
 }
 /* Pausa: el sonido se corta, la nota queda marcada y al continuar se retoma desde ella */
-function pause(){if(!playing)return;halt(true);paused=true;if(cur>=0)pos=cur;ui();}
+function pause(){if(!playing)return;halt(true);paused=true;if(cur>=0)pos=cur;ui();Media.state();}
 /* Detener del todo: vuelve al inicio (cambio de canción, de instrumento, fin de la canción) */
-function stop(){halt(false);paused=false;pos=0;ui();}
+function stop(){halt(false);paused=false;pos=0;ui();Media.state();}
+let starting=0;
 function play(from){
   if(playing&&from==null){pause();return;}
   if(playing)halt(false);
-  if(!window.CirculosPiano){toast('El sonido no está disponible');return;}
-  window.CirculosPiano.unlock();
+  if(!P()){toast('El sonido no está disponible');return;}
   const resume=from==null&&paused;
   if(from!=null)pos=from;else if(!paused)pos=0;
   if(pos>=events.length)pos=0;
-  let lastLine=from!=null||resume?(events[pos]||{}).line:-1;
+  lastLine=from!=null||resume?(events[pos]||{}).line:-1;
   playing=true;paused=false;cur=-1;ui();
-  const step=()=>{
-    if(!playing)return;
-    if(pos>=events.length){stop();return;}
-    const e=events[pos],ms=e.dur*60000/(+tempo.value);cur=pos;
-    if(nowEl){nowEl.classList.remove('is-now');nowEl=null;}
-    KB.light(!e.rest&&e.pos?e.pos.p:null);
-    if(!e.rest&&e.pos){
-      if(!e.tied||e.idx===resumeIdx)window.CirculosPiano.play(e.pos.p,{velocity:.8});
-      const el=document.querySelector(`.tl-note[data-i="${e.idx}"]`);
-      if(el){el.classList.add('is-now');nowEl=el;if(e.line!==lastLine){lastLine=e.line;el.closest('svg').scrollIntoView({block:'center',behavior:'smooth'});}}
-    }
-    pos++;timer=setTimeout(step,ms);
-  };
-  const resumeIdx=pos;                                            // la primera nota al continuar suena aunque esté ligada
-  timer=setTimeout(step,soundReady?60:450);soundReady=true;      // la primera vez deja cargar el sonido
+  const my=++starting;
+  P().ready().then(()=>{
+    if(!playing||my!==starting)return;
+    P().hold(true);
+    run={first:pos,next:pos,t:P().time()+.08,line:[]};
+    pump();step();clearInterval(tick);tick=setInterval(step,40);Media.state();
+  });
 }
+/* La velocidad cambió mientras suena: lo que falta se vuelve a programar */
+tempo.addEventListener('input',()=>{
+  if(!playing||!run)return;
+  const now=P().time()+.03;P().cancelFrom(now);
+  const kept=run.line.filter(x=>x.t<now);
+  const last=kept[kept.length-1];
+  if(!last){run.next=run.first;run.t=now;run.line=[];}
+  else{run.line=kept;run.next=last.i+1;run.t=Math.max(now,last.t+secs(events[last.i]));}
+  pump();
+});
+/* Si el navegador tuvo que reiniciar el audio, se sigue desde la nota marcada */
+document.addEventListener('circulos:audio-reset',()=>{if(playing){const at=cur>=0?cur:pos;halt(true);paused=true;pos=at;play();}});
+/* Controles del sistema (pantalla bloqueada, Centro de control, teclas multimedia) */
+const Media=(()=>{
+  const ms=navigator.mediaSession;
+  const state=()=>{if(!ms)return;try{ms.playbackState=playing?'playing':paused?'paused':'none';
+    if(song)ms.metadata=new MediaMetadata({title:(song.number!=null?song.number+'. ':'')+song.title,artist:'Círculos Music'});}catch(e){}};
+  if(ms){try{
+    ms.setActionHandler('play',()=>{if(!playing)play();});
+    ms.setActionHandler('pause',()=>{if(playing)pause();});
+    ms.setActionHandler('stop',()=>stop());
+  }catch(e){}}
+  return{state};
+})();
 $('tabPlay').addEventListener('click',()=>play());
 /* Barra espaciadora: Play / Pausa (en la computadora), salvo mientras se escribe */
 let spaceDown=false;
@@ -718,8 +799,8 @@ const FAB=(()=>{
   return{refresh,sync,demo};
 })();
 
-/* Al cambiar de pantalla o de pestaña, el sonido se corta */
-document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+/* Al salir de la página, el sonido se corta; al cambiar de pestaña o de app, sigue */
+document.addEventListener('visibilitychange',()=>{if(playing){pump(document.hidden);if(!document.hidden)step();}});   // sigue sonando en segundo plano
 addEventListener('pagehide',()=>pause());
 document.addEventListener('click',e=>{if(e.target.closest('a[href],#menuBtn,.app-choice'))stop();},true);
 /* Tocar una nota de la tablatura: suena desde ahí (si ya estaba sonando, salta a esa nota) */
@@ -789,7 +870,7 @@ document.addEventListener('circulos:cloud-books',e=>{if(libReady)cloudSync(e.det
 function refreshOpenBook(nb){
   book=nb;
   if(!$('tabListPanel').hidden)showList();
-  else if(!$('tabSong').hidden&&!playing&&song){const i=nb.songs.findIndex(x=>x.number===song.number&&x.title===song.title);if(i>=0)openSong(i);}
+  else if(!$('tabSong').hidden&&!playing&&song){const i=nb.songs.findIndex(x=>x.number===song.number&&x.title===song.title);if(i>=0)openSong(i,'replace');}
 }
 async function cloudUpdate(e){
   const F=window.CirculosFavs;if(!F?.nick||!F.updateBook||!mine(e))return;
@@ -842,6 +923,61 @@ updInput.addEventListener('change',async()=>{
   else toast('No se pudo leer este PDF. Prueba con otro archivo.');
 });
 
+/* ───────── Número y nombre del cántico en la barra de arriba al bajar por la partitura (como en iPhone) ───────── */
+const Head=(()=>{
+  const bar=document.querySelector('.app-header'),inner=bar&&bar.querySelector('.header-inner');
+  const el=document.createElement('button');el.type='button';el.className='hdr-song';el.setAttribute('aria-label','Volver al inicio de la canción');
+  el.innerHTML='<span class="hs-label">Canción</span><span class="hs-num"></span><span class="hs-title"></span>';
+  if(inner)inner.appendChild(el);
+  let cur=null,away=false;
+  new IntersectionObserver(([en])=>{away=!en.isIntersecting&&en.boundingClientRect.bottom<90;sync();},{rootMargin:'-72px 0px 0px 0px'}).observe(document.querySelector('.tab-song-titles'));
+  function sync(){
+    const show=!!cur&&away&&!$('tabSong').hidden;
+    bar&&bar.classList.toggle('show-song',show);
+    if(!cur)return;
+    const n=el.querySelector('.hs-num');n.textContent=cur.number??'';n.hidden=cur.number==null;
+    el.querySelector('.hs-title').textContent=cur.title;
+  }
+  el.addEventListener('click',()=>scrollTo({top:Math.max(0,$('tabSong').offsetTop-80),behavior:'smooth'}));
+  return{set(s){cur=s;sync();},sync};
+})();
+
+/* ───────── Atrás: cada vista es un paso del historial ─────────
+   Mis partituras (raíz) → Canciones → Canción. El botón Atrás del navegador, el gesto de deslizar del iPhone
+   o del Mac y los botones de la página llevan a la vista anterior, no a la página de inicio. */
+const Nav=(()=>{
+  if('scrollRestoration' in history)history.scrollRestoration='manual';
+  const D={lib:0,list:1,song:2};
+  let ignore=false;
+  const st=()=>history.state||{};
+  const depth=()=>st().d||0;
+  const tv=()=>st().tv||'lib';
+  function push(v,hash,extra={}){
+    const d=v==='load'?depth()+1:D[v];
+    const s={tv:v,d,...extra};
+    if(v!=='load'&&depth()>=d)history.replaceState(s,'',hash);else history.pushState(s,'',hash);
+  }
+  function replace(v,hash,extra={}){history.replaceState({tv:v,d:D[v]??depth(),...extra},'',hash);}
+  function root(){const d=depth();if(d>0){ignore=true;history.go(-d);}else history.replaceState({tv:'lib',d:0},'','#');}
+  async function route(s){
+    if(s.tv==='song'||s.tv==='list'){
+      if(!book||s.book!==curId){
+        if(s.book&&lib.some(x=>x.id===s.book))await openBook(s.book,false);
+        if(!book||s.book!==curId){showLib();return;}
+      }
+      if(s.tv==='song'&&book.songs[s.i])openSong(s.i,'none');else{showList();scrollTo({top:Math.max(0,$('tabListPanel').offsetTop-90),behavior:'smooth'});}
+      return;
+    }
+    if(s.tv==='load'&&lib.length){openLoad(false);return;}
+    showLib();
+  }
+  addEventListener('popstate',e=>{
+    if(ignore){ignore=false;return;}
+    route(e.state||{tv:'lib',d:0});
+  });
+  return{push,replace,root,route,tv};
+})();
+
 /* Para la guía (tutorial.js): demostraciones del teclado y del botón flotante */
 window.CirculosTablatura={kbDemo:on=>KB.demo(on),fabDemo:on=>FAB.demo(on)};
 
@@ -850,9 +986,11 @@ window.CirculosTablatura={kbDemo:on=>KB.demo(on),fabDemo:on=>FAB.demo(on)};
   await loadLib();
   const h=decodeURIComponent(location.hash.slice(1));
   let opened=false;
-  if(h&&curId){                                                     // enlace a una canción del PDF abierto
+  if(history.state&&history.state.tv){await Nav.route(history.state);opened=true;}   // al recargar o volver a esta página: el historial sigue
+  else if(h&&curId){                                                // enlace a una canción del PDF abierto
     const b=await DB.get('book:'+curId);
-    if(b){book=b;const i=book.songs.findIndex(s=>String(s.number)===h);if(i>=0){showList();openSong(i);opened=true;}}
+    if(b){book=b;const i=book.songs.findIndex(s=>String(s.number)===h);
+      if(i>=0){history.replaceState({tv:'lib',d:0},'','#');showList();Nav.push('list','#',{book:curId});openSong(i);opened=true;}}
   }
   if(!opened)showLib();
   if(lib.length)$('tabDropTitle').textContent='Elegir otra partitura en PDF';

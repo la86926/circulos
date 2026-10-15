@@ -210,3 +210,40 @@ html[data-theme=dark] .lib-confirm-cancel{color:#9dc4f5}
   body{background:#fff}.container{padding:0;width:100%}.panel{border:0;box-shadow:none}
   .tab-line{break-inside:avoid}
 }
+
+/* Número del cántico, favoritas y título en la barra de arriba */
+.tab-song-line{display:flex;align-items:center;gap:14px;min-width:0}
+.tab-song-line h2{flex:1;min-width:0}
+.tab-num{flex:0 0 auto;display:grid;place-items:center;align-content:center;min-width:64px;height:64px;padding:0 10px;border-radius:18px;background:linear-gradient(145deg,#8cbcf3,#5b8fdb);color:#fff;box-shadow:0 8px 20px rgba(91,143,219,.28);line-height:1}
+.tab-num[hidden]{display:none}
+.tab-num small{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin-bottom:4px}
+.tab-num b{font-size:30px;font-weight:800;letter-spacing:-.03em}
+.tab-num.is-long b{font-size:24px}
+.tab-fav{flex:0 0 auto;display:grid;place-items:center;width:36px;height:36px;margin-left:auto;padding:0;border:0;border-radius:50%;background:transparent;color:#a3b0c2;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s}
+.tab-fav:hover{background:var(--surface2)}
+.tab-fav svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;transition:fill .2s,stroke .2s}
+.tab-fav.is-on{color:#ec7aa5}.tab-fav.is-on svg{fill:#f6a9c6}
+.tab-fav.pop svg{animation:favPop .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes favPop{0%{transform:scale(.7)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+.tab-fav-lg{width:46px;height:46px;border:1px solid var(--line);background:var(--surface)}
+.tab-fav-lg svg{width:24px;height:24px}
+.tab-item .tab-fav{margin:-6px -8px -6px auto}
+.tab-item span{flex:1;min-width:0}
+.tab-filter{display:inline-flex;gap:2px;margin:8px 20px 0;padding:3px;border-radius:12px;background:var(--surface2)}
+.tab-filter[hidden]{display:none}
+.tab-filter button{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:inherit;font-size:13.5px;font-weight:650;cursor:pointer;transition:background .2s,color .2s}
+.tab-filter button[aria-selected=true]{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(15,30,60,.12)}
+.tab-filter .tf-heart{display:inline-grid;color:#ec7aa5}.tab-filter .tf-heart svg{width:15px;height:15px;fill:#f6a9c6;stroke:currentColor;stroke-width:1.8}
+.tab-filter b{min-width:20px;padding:1px 6px;border-radius:999px;background:#fde3ee;color:#c94f7d;font-size:11.5px;text-align:center}
+html[data-theme=dark] .tab-filter b{background:#3a2330;color:#f3a6c4}
+@media(max-width:560px){.tab-num{min-width:54px;height:54px;border-radius:15px}.tab-num b{font-size:25px}.tab-num.is-long b{font-size:20px}.tab-song-line{gap:11px}.tab-fav-lg{width:42px;height:42px}.tab-filter{margin:8px 14px 0}}
+.app-header .header-inner>#menuBtn{grid-area:1/1/2/2}.app-header .brand-wrap{grid-area:1/2/2/3;transition:opacity .25s,transform .25s}.app-header .theme-switch{grid-area:1/3/2/4}
+.hdr-song{grid-area:1/2/2/3;justify-self:center;display:inline-flex;align-items:center;gap:10px;max-width:min(52vw,560px);min-width:0;padding:0;border:0;background:transparent;color:var(--text);font:inherit;cursor:pointer;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .25s,transform .25s;-webkit-tap-highlight-color:transparent}
+.app-header.show-song .brand-wrap{opacity:0;transform:translateY(-10px);pointer-events:none}
+.app-header.show-song .hdr-song{opacity:1;transform:none;pointer-events:auto}
+.hdr-song .hs-label{display:none;font-size:15px;font-weight:700;color:var(--muted)}
+.hdr-song .hs-num{flex:0 0 auto;display:grid;place-items:center;min-width:36px;height:36px;padding:0 7px;border-radius:11px;background:linear-gradient(145deg,#8cbcf3,#5b8fdb);color:#fff;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.hdr-song .hs-num[hidden]{display:none}
+.hdr-song .hs-title{min-width:0;font-size:17px;font-weight:750;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:600px){.hdr-song .hs-title{display:none}.hdr-song .hs-label{display:inline}.hdr-song{gap:8px}}
+@media print{.tab-fav,.tab-filter{display:none!important}}

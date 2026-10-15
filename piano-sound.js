@@ -8,7 +8,8 @@ if(!AC)return;
 const SAMPLES={48:'C3',51:'Ds3',54:'Fs3',57:'A3',60:'C4',63:'Ds4',66:'Fs4',69:'A4',72:'C5',75:'Ds5',78:'Fs5',81:'A5',84:'C6'};
 const ROOTS=Object.keys(SAMPLES).map(Number);
 let ctx=null,out=null,loading=null;
-const buffers=new Map(),voices=new Map();
+const buffers=new Map(),voices=new Map(),all=new Set();   // all: todo lo que suena o ya está programado para sonar
+let holding=false;                                            // la partitura está sonando: no se duerme al cambiar de pestaña o de app
 
 function context(){
   if(ctx)return ctx;
@@ -31,7 +32,7 @@ function load(){
    o, en el iPhone, "running" pero con el reloj detenido y sin sonido. Se despierta y, si sigue mudo, se crea uno nuevo
    (los sonidos ya cargados sirven igual). */
 let waking=null;
-function rebuild(){const old=ctx;ctx=null;out=null;try{old&&old.close();}catch(e){}return context();}
+function rebuild(){const old=ctx;ctx=null;out=null;all.clear();voices.clear();try{old&&old.close();}catch(e){}const c=context();document.dispatchEvent(new CustomEvent('circulos:audio-reset'));return c;}
 function wake(){
   const c=context();
   if(waking)return waking;
@@ -47,7 +48,7 @@ let stale=false;                                               // se marca al ir
 function unlock(){const c=context();if(stale||c.state!=='running'){stale=false;wake();}load();}
 document.addEventListener('visibilitychange',()=>{
   if(!ctx)return;
-  if(document.hidden){stale=true;try{ctx.suspend();}catch(e){}}
+  if(document.hidden){stale=true;if(!holding){try{ctx.suspend();}catch(e){}}}
   else unlock();
 });
 addEventListener('pageshow',e=>{if(e.persisted&&ctx){stale=true;unlock();}});
@@ -64,7 +65,7 @@ function voice(midi,when,velocity){
   gain.gain.setTargetAtTime(0,when+3.2,.9);                  // cola natural y luego se desvanece
   src.connect(gain);gain.connect(out);src.start(when);src.stop(when+7.5);
   if(voices.size>28){const [old,ov]=voices.entries().next().value;try{ov.gain.gain.setTargetAtTime(0,when,.05);ov.src.stop(when+.3);}catch(e){}voices.delete(old);}
-  const v={src,gain};voices.set(midi,v);src.onended=()=>{if(voices.get(midi)===v)voices.delete(midi);};
+  const v={src,gain,when};voices.set(midi,v);all.add(v);src.onended=()=>{all.delete(v);if(voices.get(midi)===v)voices.delete(midi);};
 }
 function play(midis,{roll=0,velocity=.8}={}){
   unlock();
@@ -80,10 +81,16 @@ function play(midis,{roll=0,velocity=.8}={}){
 /* Corta en seco todo lo que esté sonando (al detener o al salir de la pantalla) */
 function stopAll(){
   if(!ctx)return;const t=ctx.currentTime;
-  voices.forEach(v=>{try{v.gain.gain.cancelScheduledValues(t);v.gain.gain.setTargetAtTime(0,t,.015);v.src.stop(t+.12);}catch(e){}});
-  voices.clear();
+  all.forEach(v=>{try{if(v.when>t){v.src.stop(0);return;}v.gain.gain.cancelScheduledValues(t);v.gain.gain.setTargetAtTime(0,t,.015);v.src.stop(t+.12);}catch(e){}});
+  all.clear();voices.clear();
 }
-window.CirculosPiano={play,unlock,stopAll};
+/* Programar notas con el reloj del audio: siguen sonando aunque la pestaña o la app queden en segundo plano */
+function ready(){unlock();return Promise.all([load(),waking]).then(()=>{if(ctx&&ctx.state!=='running')wake();return ctx;});}
+const time=()=>ctx?ctx.currentTime:0;
+function schedule(midi,when,{velocity=.8}={}){if(ctx&&Number.isFinite(midi))voice(midi,when,velocity);}
+function cancelFrom(t){all.forEach(v=>{if(v.when>=t){try{v.src.stop(0);}catch(e){}all.delete(v);}});}
+function hold(on){holding=!!on;}
+window.CirculosPiano={play,unlock,stopAll,ready,time,schedule,cancelFrom,hold};
 
 /* Teclas: suenan al tocarlas y al deslizar el dedo encima (barrido o glissando).
    En pantallas táctiles, si el gesto es vertical se deja desplazar la página y no suena nada. */

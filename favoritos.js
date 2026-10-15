@@ -54,9 +54,9 @@ const KEY_MOVED='circulos-moved-to',KEY_MOVED_NICK='circulos-moved-nick';
    viaja a los demás dispositivos de ese ID. Sin ID, nada de esto sale del dispositivo. */
 const KEY_CONV='circulos-conv',KEY_CONV_ID='circulos-conv-id',KEY_BOOK='circulos-libro',KEY_BOOKS='circulos-libros',BOOK_PREFIX='circuloslibro-',PART=700000;
 let books=null;                    // «Mis partituras» del ID: [{id,parts,name,songs,at}]
-/* Ajustes del Convertidor que viajan con el ID: velocidad de cada canción y lugar/tamaño del teclado.
+/* Ajustes del Convertidor que viajan con el ID: velocidad de cada canción, lugar/tamaño del teclado y canciones favoritas.
    Cada uno guarda su hora; gana el más reciente. */
-const SYNCED=[{key:'tab-tempos',at:'tab-tempos-at',ev:'circulos:tempos'},{key:'tab-kb-place',at:'tab-kb-place-at',ev:'circulos:kb'}];
+const SYNCED=[{key:'tab-tempos',at:'tab-tempos-at',ev:'circulos:tempos'},{key:'tab-kb-place',at:'tab-kb-place-at',ev:'circulos:kb'},{key:'tab-favs',at:'tab-favs-at',ev:'circulos:tabfavs'}];
 const localAtOf=k=>Number(store.get(k.at))||0;
 const remoteAtOf=(d,k)=>Number(d&&d.l1&&d.l1.storage&&d.l1.storage[k.at])||0;
 const sessionConv=()=>{try{return sessionStorage.getItem('circulos-convertidor')==='1';}catch(e){return false;}};
