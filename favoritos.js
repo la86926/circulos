@@ -148,7 +148,7 @@ async function connect(name,{silent=false,mode=''}={}){
   /* Primera vez con este ID en este dispositivo y hay cosas en los dos lados: la persona elige */
   let choice='';
   if(remote&&firstTimeHere&&!silent){
-    const mine={favs:favs.length,pdfs:(await localLib()).filter(e=>e.local).length};
+    const mine={favs:favs.length,pdfs:(await localLib()).filter(e=>e.local&&!e.shared).length};
     const theirs={favs:remote.list.length,pdfs:remoteBooks(d).length};
     if((mine.favs||mine.pdfs)&&(theirs.favs||theirs.pdfs)){
       choice=await askChoice(name,mine,theirs);
@@ -207,20 +207,20 @@ async function tagOwners(prev){                                    // PDF subido
 }
 async function clearLocalLib(){
   const idx=await localLib();
-  for(const e of idx){await LIBDB.del('book:'+e.id);await LIBDB.del('pdf:'+e.id);}
-  await LIBDB.set('index',[]);await LIBDB.del('current');libReset();
+  for(const e of idx){if(e.shared)continue;await LIBDB.del('book:'+e.id);await LIBDB.del('pdf:'+e.id);}   // el cancionero para todos se queda
+  await LIBDB.set('index',idx.filter(e=>e.shared));await LIBDB.del('current');libReset();
 }
 async function forgetCloudIds(){                                   // lo de aquí se subirá de nuevo a este ID
   const idx=await localLib();
   idx.forEach(e=>{delete e.cloudId;delete e.parts;delete e.seen;delete e.owner;});
-  await LIBDB.set('index',idx.filter(e=>e.local));libReset();
+  await LIBDB.set('index',idx.filter(e=>e.local||e.shared));libReset();
 }
 const inflight=new Set();
 /* Sube un PDF de Mis partituras al ID (si aún no está en él) y lo marca en la lista del dispositivo */
 async function uploadEntry(entryId){
   if(!nick||inflight.has(entryId))return null;
   const e=(await localLib()).find(x=>x.id===entryId);
-  if(!e||!e.local||ownedHere(e))return null;
+  if(!e||!e.local||e.shared||ownedHere(e))return null;            // el cancionero para todos no se sube a ningún ID
   inflight.add(entryId);
   try{
     const b=await LIBDB.get('book:'+entryId);if(!b)return null;
@@ -233,7 +233,7 @@ async function uploadEntry(entryId){
 async function pushLocalBooks(){
   if(!nick)return;
   let n=0;
-  try{for(const e of await localLib())if(e.local&&!ownedHere(e)&&await uploadEntry(e.id))n++;}
+  try{for(const e of await localLib())if(e.local&&!e.shared&&!ownedHere(e)&&await uploadEntry(e.id))n++;}
   catch(err){console.error('Favoritos:',err);}
   if(n){libReset();}
 }
